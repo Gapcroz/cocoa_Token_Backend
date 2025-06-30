@@ -1,21 +1,21 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "module": "commonjs",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "baseUrl": ".",
+    "target": "es2020", // ✅ Más moderno para async/await y compatibilidad
+    "module": "commonjs", // ✅ OK para Node.js
+    "outDir": "./dist", // ✅ Carpeta de salida
+    "rootDir": "./src", // ✅ Carpeta fuente
+    "strict": true, // ✅ Buenas prácticas
+    "esModuleInterop": true, // ✅ Importación de paquetes CommonJS
+    "skipLibCheck": true, // ✅ Ignora comprobación de tipos de dependencias
+    "forceConsistentCasingInFileNames": true, // ✅ Sensible a mayúsculas/minúsculas
+    "moduleResolution": "node", // ✅ Resolución típica en Node.js
+    "resolveJsonModule": true, // ✅ Para importar archivos JSON
+    "baseUrl": ".", // ✅ Para usar paths relativos
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"] // ✅ Alias útiles
     },
-    "types": ["node", "express"]
+    "types": ["node", "express"] // ✅ Incluye tipos necesarios
   },
-  "include": ["src", "src/types"],
-  "exclude": ["node_modules"]
+  "include": ["src", "src/types"], // ✅ Archivos que compila
+  "exclude": ["node_modules", "dist"] // ⚠️ Añade "dist" para evitar errores duplicados
 }
