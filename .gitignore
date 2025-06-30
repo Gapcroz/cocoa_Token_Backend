@@ -1,0 +1,18 @@
+# Node.js / TypeScript
+node_modules/
+firebase/
+dist/
+.env
+*.env
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# IDEs and editors
+.vscode/
+.DS_Store
+
+# Optional: lockfile if you prefer fresh installs
+package-lock.json
