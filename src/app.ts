@@ -13,14 +13,14 @@ import "./models/coupon";
 
 const app: Express = express();
 
-// app.use(
-//   cors({
-//     origin: "https://cocoa-token-front.vercel.app", //spooky
-//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//     allowedHeaders: ["Content-Type", "Authorization"],
-//     credentials: true, 
-//   })
-// );
+app.use(
+  cors({
+    origin: "https://cocoa-token-front.vercel.app", //spooky
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true, 
+  })
+);
 
 app.use(express.json());
 
