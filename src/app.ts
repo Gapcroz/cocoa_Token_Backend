@@ -15,9 +15,10 @@ const app: Express = express();
 
 app.use(
   cors({
-    origin: "*",
+    origin: "https://cocoa-token-front.vercel.app", //spooky
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true, 
   })
 );
 
