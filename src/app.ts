@@ -6,6 +6,8 @@ import cors from "cors";
 import { connectDB } from "./config/database";
 import authRoutes from "./routes/authRoutes";
 import couponRoutes from "./routes/couponRoutes";
+import storeRoutes from "./routes/storeRoutes";
+import userCouponRoutes from "./routes/userCouponRoutes";
 
 // Modelos de Mongoose
 import "./models/user";
@@ -13,20 +15,22 @@ import "./models/coupon";
 
 const app: Express = express();
 
-// app.use(
-//   cors({
-//     origin: "https://cocoa-token-front.vercel.app", //spooky
-//     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//     allowedHeaders: ["Content-Type", "Authorization"],
-//     credentials: true, 
-//   })
-// );
+app.use(
+  cors({
+    origin: "https://cocoa-token-front.vercel.app", //spooky
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true, 
+  })
+);
 
 app.use(express.json());
 
 // Rutas
 app.use("/api", authRoutes);
 app.use("/api/coupons", couponRoutes);
+app.use("/api/stores", storeRoutes);
+app.use("/api/user-coupons", userCouponRoutes);
 
 // Conexión y arranque
 const PORT = parseInt(process.env.PORT || "3000", 10);

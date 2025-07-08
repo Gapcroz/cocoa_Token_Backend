@@ -1,12 +1,14 @@
 // src/routes/authRoutes.ts
-import express from "express";
-import { login, register, googleLogin, completeGoogleUser } from "../controllers/authController";
+import express, { Router } from "express";
+import { login, register, googleLogin, completeGoogleUser, getMe } from "../controllers/authController";
+import { isAuthenticated } from "../middleware/auth.middleware";
 
-const router = express.Router();
+const router = Router();
 
 router.post("/register", register);
 router.post("/login", login);
 router.post("/google-login", googleLogin);
 router.post("/complete-google-user", completeGoogleUser);
+router.get("/me", isAuthenticated, getMe);
 
 export default router;
