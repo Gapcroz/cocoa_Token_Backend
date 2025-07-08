@@ -15,12 +15,17 @@ import "./models/coupon";
 
 const app: Express = express();
 
+// Get allowed origins from .env and split them into an array
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : [];
+
 app.use(
   cors({
-    origin: "https://cocoa-token-front.vercel.app", //spooky
+    origin: allowedOrigins, // Use the array of origins
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true, 
+    credentials: true,
   })
 );
 
