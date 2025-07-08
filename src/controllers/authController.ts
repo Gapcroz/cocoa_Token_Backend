@@ -8,6 +8,9 @@ import admin from "../utils/firebase";
 const JWT_SECRET = process.env.JWT_SECRET || "mi_clave_secreta_super_segura";
 
 export const register = async (req: Request, res: Response) => {
+  // Log para depuración: mostrar el body recibido
+  console.log('Body recibido en registro:', req.body);
+
   const { name, address, birthDate, email, password, isStore } = req.body;
   console.log("Register: Received request to register user:", {
     email,
@@ -18,11 +21,9 @@ export const register = async (req: Request, res: Response) => {
     console.log("Register: Checking if user already exists for email:", email);
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.log("Register: User already exists for email:", email);
-      return res.status(409).json({ message: "El usuario ya existe." });
+      res.status(409).json({ message: "El usuario ya existe." });
+      return;
     }
-    console.log("Register: User does not exist, proceeding with registration.");
-
     console.log("Register: Hashing password...");
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log("Register: Password hashed successfully.");
@@ -36,8 +37,8 @@ export const register = async (req: Request, res: Response) => {
         true,
       );
       if (!formattedDate.isValid()) {
-        console.log("Register: Invalid birthDate provided:", birthDate);
-        return res.status(400).json({ message: "Fecha de nacimiento inválida" });
+        res.status(400).json({ message: "Fecha de nacimiento inválida" });
+        return;
       }
       parsedDate = formattedDate.toDate();
       console.log("Register: BirthDate parsed successfully to:", parsedDate);
@@ -68,6 +69,7 @@ export const register = async (req: Request, res: Response) => {
       address: newUser.address,
       birthDate: newUser.birthDate,
       isStore: newUser.isStore,
+      tokens: newUser.tokens,
     });
     console.log("Register: User registered successfully, response sent.");
   } catch (err) {
@@ -114,7 +116,15 @@ export const login = async (req: Request, res: Response) => {
       message: "Login exitoso",
       token,
       userId: user._id,
-      user,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        address: user.address,
+        birthDate: user.birthDate,
+        isStore: user.isStore,
+        tokens: user.tokens,
+      },
     });
     console.log("Login: User logged in successfully, response sent.");
   } catch (err) {
@@ -163,7 +173,15 @@ export const googleLogin = async (req: Request, res: Response) => {
       message: "Login con Google exitoso",
       token,
       userId: user._id,
-      user,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        address: user.address,
+        birthDate: user.birthDate,
+        isStore: user.isStore,
+        tokens: user.tokens,
+      },
     });
     console.log("GoogleLogin: Google login successful, response sent.");
   } catch (error) {
@@ -233,5 +251,29 @@ export const completeGoogleUser = async (req: Request, res: Response) => {
   } catch (err) {
     console.error("CompleteGoogleUser: Error in completeGoogleUser:", err);
     res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+// Obtener datos del usuario autenticado
+export const getMe = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    if (!user) {
+      res.status(401).json({ message: 'No autenticado' });
+      return;
+    }
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      address: user.address,
+      birthDate: user.birthDate,
+      isStore: user.isStore,
+      tokens: user.tokens,
+    });
+    return;
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener el usuario' });
+    return;
   }
 };
