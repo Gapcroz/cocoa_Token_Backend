@@ -8,7 +8,7 @@ import authRoutes from "./routes/authRoutes";
 import couponRoutes from "./routes/couponRoutes";
 import storeRoutes from "./routes/storeRoutes";
 import userCouponRoutes from "./routes/userCouponRoutes";
-
+import tokenRoutes from "./routes/tokenRoutes";
 // Modelos de Mongoose
 import "./models/user";
 import "./models/coupon";
@@ -36,6 +36,7 @@ app.use("/api", authRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/stores", storeRoutes);
 app.use("/api/user-coupons", userCouponRoutes);
+app.use("/api/tokens", tokenRoutes);
 
 // Conexión y arranque
 const PORT = parseInt(process.env.PORT || "3000", 10);
