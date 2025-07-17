@@ -5,8 +5,9 @@ export interface ITokenTransaction extends Document {
   receiverId: mongoose.Types.ObjectId;
   amount: number;
   status: "pending" | "completed" | "failed" | "cancelled";
-  transactionType: "transfer" | "coupon_redemption" | "admin_credit"; // Extend as needed
+  transactionType: "transfer" | "coupon_redemption" | "admin_credit";
   description?: string;
+  requestId?: string; // <-- New field for idempotency
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -36,6 +37,7 @@ const TokenTransactionSchema = new Schema<ITokenTransaction>(
       required: true,
     },
     description: { type: String },
+    requestId: { type: String, unique: true, sparse: true }, // <-- Make it unique, but allow nulls
   },
   { timestamps: true },
 );
