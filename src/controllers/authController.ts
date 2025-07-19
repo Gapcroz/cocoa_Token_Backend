@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "mi_clave_secreta_super_segura";
 
 export const register = async (req: Request, res: Response) => {
   // Log para depuración: mostrar el body recibido
-  console.log('Body recibido en registro:', req.body);
+  console.log("Body recibido en registro:", req.body);
 
   const { name, address, birthDate, email, password, isStore } = req.body;
   console.log("Register: Received request to register user:", {
@@ -30,11 +30,14 @@ export const register = async (req: Request, res: Response) => {
 
     let parsedDate: Date | null = null;
     if (!isStore) {
-      console.log("Register: User is not a store, parsing birthDate:", birthDate);
+      console.log(
+        "Register: User is not a store, parsing birthDate:",
+        birthDate
+      );
       const formattedDate = moment(
         birthDate,
         ["DD/MM/YYYY", "YYYY-MM-DD"],
-        true,
+        true
       );
       if (!formattedDate.isValid()) {
         res.status(400).json({ message: "Fecha de nacimiento inválida" });
@@ -78,7 +81,7 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response): Promise<any> => {
   const { email, password } = req.body;
   console.log("Login: Received request to login user with email:", email);
 
@@ -92,7 +95,10 @@ export const login = async (req: Request, res: Response) => {
     console.log("Login: User found:", user.email);
 
     if (!user.password) {
-      console.log("Login: User password is null, profile not completed for:", email);
+      console.log(
+        "Login: User password is null, profile not completed for:",
+        email
+      );
       return res.status(400).json({
         message: "Este usuario aún no ha completado su perfil",
       });
@@ -147,7 +153,10 @@ export const googleLogin = async (req: Request, res: Response) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-      console.log("GoogleLogin: User not found, creating new user for email:", email);
+      console.log(
+        "GoogleLogin: User not found, creating new user for email:",
+        email
+      );
       user = new User({
         name,
         email,
@@ -156,7 +165,9 @@ export const googleLogin = async (req: Request, res: Response) => {
         birthDate: null,
         isStore: false,
       });
-      console.log("GoogleLogin: New user instance created, saving to database...");
+      console.log(
+        "GoogleLogin: New user instance created, saving to database..."
+      );
       await user.save();
       console.log("GoogleLogin: New user saved successfully.");
     } else {
@@ -190,9 +201,15 @@ export const googleLogin = async (req: Request, res: Response) => {
   }
 };
 
-export const completeGoogleUser = async (req: Request, res: Response) => {
+export const completeGoogleUser = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
   const { userId, password, isStore, birthDate } = req.body;
-  console.log("CompleteGoogleUser: Received request to complete user profile for userId:", userId);
+  console.log(
+    "CompleteGoogleUser: Received request to complete user profile for userId:",
+    userId
+  );
 
   if (!userId || !password || typeof isStore === "undefined") {
     console.log("CompleteGoogleUser: Missing required fields in request.");
@@ -210,10 +227,15 @@ export const completeGoogleUser = async (req: Request, res: Response) => {
     console.log("CompleteGoogleUser: User found:", user.email);
 
     if (user.password) {
-      console.log("CompleteGoogleUser: User profile already completed for userId:", userId);
+      console.log(
+        "CompleteGoogleUser: User profile already completed for userId:",
+        userId
+      );
       return res.status(400).json({ message: "El perfil ya fue completado" });
     }
-    console.log("CompleteGoogleUser: User profile not yet completed, proceeding.");
+    console.log(
+      "CompleteGoogleUser: User profile not yet completed, proceeding."
+    );
 
     console.log("CompleteGoogleUser: Hashing new password...");
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -221,18 +243,29 @@ export const completeGoogleUser = async (req: Request, res: Response) => {
 
     let parsedDate: Date | null = null;
     if (!isStore && birthDate) {
-      console.log("CompleteGoogleUser: User is not a store and birthDate provided, parsing:", birthDate);
+      console.log(
+        "CompleteGoogleUser: User is not a store and birthDate provided, parsing:",
+        birthDate
+      );
       const formattedDate = moment(birthDate, ["YYYY-MM-DD", "DD/MM/YYYY"]);
       if (!formattedDate.isValid()) {
-        console.log("CompleteGoogleUser: Invalid birthDate provided:", birthDate);
+        console.log(
+          "CompleteGoogleUser: Invalid birthDate provided:",
+          birthDate
+        );
         // You might want to send a 400 here if you want to enforce strict date format
         // For now, it will just assign null if invalid.
       } else {
         parsedDate = formattedDate.toDate();
-        console.log("CompleteGoogleUser: BirthDate parsed successfully to:", parsedDate);
+        console.log(
+          "CompleteGoogleUser: BirthDate parsed successfully to:",
+          parsedDate
+        );
       }
     } else {
-      console.log("CompleteGoogleUser: User is a store or no birthDate provided.");
+      console.log(
+        "CompleteGoogleUser: User is a store or no birthDate provided."
+      );
     }
 
     console.log("CompleteGoogleUser: Assigning updated fields to user object.");
@@ -242,12 +275,16 @@ export const completeGoogleUser = async (req: Request, res: Response) => {
       birthDate: parsedDate,
     });
 
-    console.log("CompleteGoogleUser: Saving updated user profile to database...");
+    console.log(
+      "CompleteGoogleUser: Saving updated user profile to database..."
+    );
     await user.save();
     console.log("CompleteGoogleUser: User profile saved successfully.");
 
     res.status(200).json({ message: "Perfil completado correctamente" });
-    console.log("CompleteGoogleUser: Profile completed successfully, response sent.");
+    console.log(
+      "CompleteGoogleUser: Profile completed successfully, response sent."
+    );
   } catch (err) {
     console.error("CompleteGoogleUser: Error in completeGoogleUser:", err);
     res.status(500).json({ message: "Error del servidor" });
@@ -259,7 +296,7 @@ export const getMe = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     if (!user) {
-      res.status(401).json({ message: 'No autenticado' });
+      res.status(401).json({ message: "No autenticado" });
       return;
     }
     res.json({
@@ -273,7 +310,54 @@ export const getMe = async (req: Request, res: Response) => {
     });
     return;
   } catch (error) {
-    res.status(500).json({ message: 'Error al obtener el usuario' });
+    res.status(500).json({ message: "Error al obtener el usuario" });
     return;
+  }
+};
+
+// Update user data authenticated
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user._id; // auth middleware sets user in req
+    const { name, address, birthDate, email, isStore } = req.body;
+
+    if (!name || !address || !email) {
+      res.status(400).json({ message: "Faltan campos obligatorios" });
+    }
+
+    let parsedDate: Date | null = null;
+    if (birthDate) {
+      const formattedDate = moment(birthDate, ["YYYY-MM-DD", "DD/MM/YYYY"]);
+      if (!formattedDate.isValid()) {
+        res
+          .status(400)
+          .json({ message: "Fecha de nacimiento inválida" });
+      }
+      parsedDate = formattedDate.toDate();
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        name,
+        address,
+        birthDate: parsedDate,
+        email,
+        isStore,
+      },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!updatedUser) {
+      res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    res.json({
+      message: "Perfil actualizado correctamente",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("updateProfile: Error al actualizar perfil:", error);
+    res.status(500).json({ message: "Error del servidor" });
   }
 };

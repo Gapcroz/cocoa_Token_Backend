@@ -16,16 +16,20 @@ import "./models/coupon";
 const app: Express = express();
 
 // Get allowed origins from .env and split them into an array
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",")
-  : [];
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
 
 app.use(
   cors({
-    origin: allowedOrigins, // Use the array of origins
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
   })
 );
 
@@ -41,12 +45,12 @@ app.use("/api/user-coupons", userCouponRoutes);
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
 // conectar en local
-// connectDB().then(() => {
-//   app.listen(PORT, "0.0.0.0", () => {
-//     console.log(`🚀 Server running on port ${PORT}`);
-//   });
-// });
+connectDB().then(() => {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+});
 
 //conectar en vercel
-connectDB();
-export default app;
+// connectDB();
+// export default app;
