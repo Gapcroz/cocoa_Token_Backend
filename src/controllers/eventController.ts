@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Event, IEvent } from '../models/event';
 // import EventTask, { IEventTask } from '../models/eventTask';
+import { EventService } from '../services/eventService';
 
 export class EventController {
   // Crear un nuevo evento
@@ -420,42 +421,11 @@ export class EventController {
   // Obtener eventos que tienen tareas asignadas (para eventos sociales)
   static async getEventsWithTasks(req: Request, res: Response): Promise<void> {
     try {
-      console.log('EventController: Obteniendo eventos con tareas');
-      console.log('EventController: URL:', req.url);
-      console.log('EventController: Método:', req.method);
-
-      // Obtener todos los eventos activos
-      const allActiveEvents = await Event.find({ isActive: true })
-        .sort({ date: 1, createdAt: -1 })
-        .lean();
-
-      console.log('EventController: Total de eventos activos:', allActiveEvents.length);
-
-      // Por ahora, simplemente devolver todos los eventos activos
-      // TODO: Implementar lógica de tareas cuando esté disponible
-      const eventsToReturn = allActiveEvents;
-      
-      console.log('EventController: Eventos activos encontrados:', eventsToReturn.length);
-
+      const eventsWithTasks = await EventService.getEventsWithTasks();
       res.status(200).json({
         success: true,
         message: 'Eventos obtenidos exitosamente',
-        events: eventsToReturn.map(event => ({
-          id: event._id,
-          title: event.title,
-          description: event.description,
-          location: event.location,
-          date: event.date,
-          time: event.time,
-          createdBy: event.createdBy,
-          createdAt: event.createdAt,
-          isActive: event.isActive,
-          imageUrl: event.imageUrl,
-          minTokens: event.minTokens,
-          maxTokens: event.maxTokens,
-          categoryId: event.categoryId,
-          taskCount: 0, // Temporalmente en 0 para debug
-        })),
+        events: eventsWithTasks,
       });
     } catch (error) {
       console.error('EventController: Error al obtener eventos con tareas:', error);

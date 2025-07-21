@@ -13,15 +13,6 @@ import eventParticipationRoutes from "./routes/eventParticipationRoutes";
 // import eventTaskRoutes from "./routes/eventTaskRoutes";
 import taskRoutes from "./routes/taskRoutes";
 
-// Modelos de Mongoose
-import "./models/user";
-import "./models/coupon";
-import "./models/event";
-import "./models/eventParticipation";
-// import "./models/eventTask";
-import "./models/userTaskCompletion";
-import "./models/task";
-
 const app: Express = express();
 
 // Get allowed origins from .env and split them into an array

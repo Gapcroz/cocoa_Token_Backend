@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { EventParticipation, IEventParticipation } from '../models/eventParticipation';
 import { UserTaskCompletion } from '../models/userTaskCompletion';
 import EventTask from '../models/eventTask';
+import { EventParticipationService } from '../services/eventParticipationService';
 
 export class EventParticipationController {
   // Crear una nueva participación
@@ -83,9 +84,7 @@ export class EventParticipationController {
       const { userId } = req.params;
       console.log('EventParticipationController: Obteniendo participaciones del usuario:', userId);
 
-      const participations = await EventParticipation.find({ userId })
-        .sort({ participationDate: -1 })
-        .lean();
+      const participations = await EventParticipationService.getUserParticipations(userId);
 
       console.log('EventParticipationController: Participaciones encontradas:', participations.length);
 
@@ -123,12 +122,7 @@ export class EventParticipationController {
       const { eventId, userId } = req.params;
       console.log('EventParticipationController: Verificando participación:', eventId, userId);
 
-      const participation = await EventParticipation.findOne({
-        eventId,
-        userId,
-        isActive: true,
-      });
-
+      const participation = await EventParticipationService.checkParticipation(eventId, userId);
       const isParticipating = participation !== null;
 
       res.status(200).json({
@@ -151,7 +145,7 @@ export class EventParticipationController {
       const { id } = req.params;
       console.log('EventParticipationController: Cancelando participación:', id);
 
-      const participation = await EventParticipation.findById(id);
+      const participation = await EventParticipationService.getParticipationById(id);
 
       if (!participation) {
         res.status(404).json({
@@ -162,7 +156,7 @@ export class EventParticipationController {
       }
 
       participation.isActive = false;
-      await participation.save();
+      await EventParticipationService.saveParticipation(participation);
 
       res.status(200).json({
         success: true,
@@ -184,7 +178,7 @@ export class EventParticipationController {
       const { verificationMethod, notes } = req.body;
       console.log('EventParticipationController: Verificando participación:', id);
 
-      const participation = await EventParticipation.findById(id);
+      const participation = await EventParticipationService.getParticipationById(id);
 
       if (!participation) {
         res.status(404).json({
@@ -198,7 +192,7 @@ export class EventParticipationController {
       participation.verificationDate = new Date();
       participation.verificationMethod = verificationMethod;
       participation.notes = notes;
-      await participation.save();
+      await EventParticipationService.saveParticipation(participation);
 
       res.status(200).json({
         success: true,
@@ -235,7 +229,7 @@ export class EventParticipationController {
       const { notes } = req.body;
       console.log('EventParticipationController: Completando participación:', id);
 
-      const participation = await EventParticipation.findById(id);
+      const participation = await EventParticipationService.getParticipationById(id);
 
       if (!participation) {
         res.status(404).json({
@@ -248,7 +242,7 @@ export class EventParticipationController {
       participation.isCompleted = true;
       participation.completionDate = new Date();
       participation.notes = notes;
-      await participation.save();
+      await EventParticipationService.saveParticipation(participation);
 
       res.status(200).json({
         success: true,
@@ -316,12 +310,7 @@ export class EventParticipationController {
     try {
       console.log('EventParticipationController: Obteniendo participaciones pendientes de verificación');
 
-      const participations = await EventParticipation.find({
-        isActive: true,
-        isCompleted: false,
-      })
-        .sort({ participationDate: -1 })
-        .lean();
+      const participations = await EventParticipationService.getPendingVerifications();
 
       console.log('EventParticipationController: Participaciones pendientes encontradas:', participations.length);
 
