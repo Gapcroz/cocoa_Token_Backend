@@ -73,7 +73,10 @@ export const isAdmin = async (
       res.status(401).json({ message: "No autorizado" });
       return;
     }
-    
+    if (!user.isAdmin) {
+      res.status(403).json({ message: "Solo los administradores pueden realizar esta acción" });
+      return;
+    }
 
     next();
   } catch (error) {
