@@ -61,7 +61,26 @@ export const isStore = async (
     return;
   }
 };
+export const isAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = (req as any).user;
+    
+    if (!user) {
+      res.status(401).json({ message: "No autorizado" });
+      return;
+    }
+    
 
+    next();
+  } catch (error) {
+    res.status(500).json({ message: "Error en la validación de permisos" });
+    return;
+  }
+};
 export const isRegularUser = async (
   req: Request,
   res: Response,
