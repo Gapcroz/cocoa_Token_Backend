@@ -45,12 +45,12 @@ app.use("/api/user-coupons", userCouponRoutes);
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
 // conectar en local
-connectDB().then(() => {
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-  });
-});
+// connectDB().then(() => {
+//   app.listen(PORT, "0.0.0.0", () => {
+//     console.log(`🚀 Server running on port ${PORT}`);
+//   });
+// });
 
 //conectar en vercel
-// connectDB();
-// export default app;
+connectDB();
+export default app;
