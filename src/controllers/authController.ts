@@ -18,6 +18,8 @@ export const register = async (req: Request, res: Response) => {
     isStore,
     isAdmin,
   });
+  // NUEVO LOG para depuración
+  console.log("[DEBUG] Valor recibido de isAdmin:", isAdmin, "Tipo:", typeof isAdmin);
 
   try {
     console.log("Register: Checking if user already exists for email:", email);
@@ -27,13 +29,12 @@ export const register = async (req: Request, res: Response) => {
       return;
     }
 
-    // Verificar si ya existe un admin y si el usuario que se registra no es admin
-    if (isAdmin === false || isAdmin === undefined) {
+    // Verificar si ya existe un admin y si el usuario que se registra es admin
+    if (isAdmin === true) {
       const existingAdmin = await User.findOne({ isAdmin: true });
       if (existingAdmin) {
-        res.status(403).json({
-          message:
-            "Ya existe un administrador en el sistema. No se pueden registrar más usuarios.",
+        res.status(403).json({ 
+          message: "Ya existe un administrador en el sistema. No se pueden registrar más administradores." 
         });
         return;
       }
