@@ -316,16 +316,21 @@ export const getMe = async (req: Request, res: Response) => {
 };
 
 // Update user data authenticated
-export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+export const updateProfile = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
-    const userId = (req as any).user._id; // auth middleware sets user in req
+    const userId = (req as any).user._id;
     const { name, address, birthDate, email, isStore } = req.body;
 
-    if (!name || !address || !email) {
-      res.status(400).json({ message: "Faltan campos obligatorios" });
-    }
+    const updateData: any = {};
 
-    let parsedDate: Date | null = null;
+    if (name?.trim()) updateData.name = name;
+    if (address?.trim()) updateData.address = address;
+    if (email?.trim()) updateData.email = email;
+    if (typeof isStore === "boolean") updateData.isStore = isStore;
+
     if (birthDate) {
       const formattedDate = moment(birthDate, ["YYYY-MM-DD", "DD/MM/YYYY"]);
       if (!formattedDate.isValid()) {
@@ -333,20 +338,13 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
           .status(400)
           .json({ message: "Fecha de nacimiento inválida" });
       }
-      parsedDate = formattedDate.toDate();
+      updateData.birthDate = formattedDate.toDate();
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      {
-        name,
-        address,
-        birthDate: parsedDate,
-        email,
-        isStore,
-      },
-      { new: true, runValidators: true }
-    ).select("-password");
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
 
     if (!updatedUser) {
       res.status(404).json({ message: "Usuario no encontrado" });
