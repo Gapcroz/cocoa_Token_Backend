@@ -8,10 +8,10 @@ import authRoutes from "./routes/authRoutes";
 import couponRoutes from "./routes/couponRoutes";
 import storeRoutes from "./routes/storeRoutes";
 import userCouponRoutes from "./routes/userCouponRoutes";
-
-// Modelos de Mongoose
-import "./models/user";
-import "./models/coupon";
+import eventRoutes from "./routes/eventRoutes";
+import eventParticipationRoutes from "./routes/eventParticipationRoutes";
+// import eventTaskRoutes from "./routes/eventTaskRoutes";
+import taskRoutes from "./routes/taskRoutes";
 
 const app: Express = express();
 
@@ -35,21 +35,30 @@ app.use(
 
 app.use(express.json());
 
+// Endpoint de prueba para verificar que el servidor esté funcionando
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ message: 'Server is running', timestamp: new Date().toISOString() });
+});
+
 // Rutas
 app.use("/api", authRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/stores", storeRoutes);
 app.use("/api/user-coupons", userCouponRoutes);
+app.use("/api", eventRoutes);
+app.use("/api", eventParticipationRoutes);
+// app.use("/api", eventTaskRoutes);
+app.use("/api", taskRoutes);
 
 // Conexión y arranque
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
 // conectar en local
-// connectDB().then(() => {
-//   app.listen(PORT, "0.0.0.0", () => {
-//     console.log(`🚀 Server running on port ${PORT}`);
-//   });
-// });
+//  connectDB().then(() => {
+//    app.listen(PORT, "0.0.0.0", () => {
+//      console.log(`🚀 Server running on port ${PORT}`);
+//    });
+//  });
 
 //conectar en vercel
 connectDB();

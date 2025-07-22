@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/user";
 import moment from "moment";
-import admin from "../utils/firebase";
+import isAdmin from "../utils/firebase";
 
 const JWT_SECRET = process.env.JWT_SECRET || "mi_clave_secreta_super_segura";
 
@@ -11,10 +11,12 @@ export const register = async (req: Request, res: Response) => {
   // Log para depuración: mostrar el body recibido
   console.log("Body recibido en registro:", req.body);
 
-  const { name, address, birthDate, email, password, isStore } = req.body;
+  const { name, address, birthDate, email, password, isStore, isAdmin } =
+    req.body;
   console.log("Register: Received request to register user:", {
     email,
     isStore,
+    isAdmin,
   });
 
   try {
@@ -24,6 +26,19 @@ export const register = async (req: Request, res: Response) => {
       res.status(409).json({ message: "El usuario ya existe." });
       return;
     }
+
+    // Verificar si ya existe un admin y si el usuario que se registra no es admin
+    if (isAdmin === false || isAdmin === undefined) {
+      const existingAdmin = await User.findOne({ isAdmin: true });
+      if (existingAdmin) {
+        res.status(403).json({
+          message:
+            "Ya existe un administrador en el sistema. No se pueden registrar más usuarios.",
+        });
+        return;
+      }
+    }
+
     console.log("Register: Hashing password...");
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log("Register: Password hashed successfully.");
@@ -57,6 +72,7 @@ export const register = async (req: Request, res: Response) => {
       email,
       password: hashedPassword,
       isStore: isStore || false,
+      isAdmin: isAdmin || false,
     });
     console.log("Register: New User instance created:", newUser);
 
@@ -72,9 +88,11 @@ export const register = async (req: Request, res: Response) => {
       address: newUser.address,
       birthDate: newUser.birthDate,
       isStore: newUser.isStore,
+      isAdmin: newUser.isAdmin,
       tokens: newUser.tokens,
     });
     console.log("Register: User registered successfully, response sent.");
+    return;
   } catch (err) {
     console.error("Register: Server error during registration:", err);
     res.status(500).json({ error: "Error del servidor" });
@@ -90,9 +108,11 @@ export const login = async (req: Request, res: Response): Promise<any> => {
     const user = await User.findOne({ email });
     if (!user) {
       console.log("Login: User not found for email:", email);
-      return res.status(404).json({ message: "Usuario no encontrado" });
+      res.status(404).json({ message: "Usuario no encontrado" });
+      return;
     }
     console.log("Login: User found:", user.email);
+    console.log("Login: User document from DB:", user);
 
     if (!user.password) {
       console.log(
@@ -102,13 +122,15 @@ export const login = async (req: Request, res: Response): Promise<any> => {
       return res.status(400).json({
         message: "Este usuario aún no ha completado su perfil",
       });
+      return;
     }
 
     console.log("Login: Comparing provided password with stored password...");
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       console.log("Login: Incorrect password for user:", email);
-      return res.status(401).json({ message: "Contraseña incorrecta" });
+      res.status(401).json({ message: "Contraseña incorrecta" });
+      return;
     }
     console.log("Login: Password matched successfully.");
 
@@ -118,7 +140,7 @@ export const login = async (req: Request, res: Response): Promise<any> => {
     });
     console.log("Login: JWT token generated successfully.");
 
-    res.json({
+    const responseData = {
       message: "Login exitoso",
       token,
       userId: user._id,
@@ -129,10 +151,18 @@ export const login = async (req: Request, res: Response): Promise<any> => {
         address: user.address,
         birthDate: user.birthDate,
         isStore: user.isStore,
+        isAdmin: user.isAdmin,
         tokens: user.tokens,
       },
-    });
+    };
+    console.log(
+      "Login: Response data being sent:",
+      JSON.stringify(responseData, null, 2)
+    );
+
+    res.json(responseData);
     console.log("Login: User logged in successfully, response sent.");
+    return;
   } catch (err) {
     console.error("Login: Server error during login:", err);
     res.status(500).json({ error: "Error del servidor" });
@@ -145,7 +175,7 @@ export const googleLogin = async (req: Request, res: Response) => {
 
   try {
     console.log("GoogleLogin: Verifying Google ID token...");
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const decodedToken = await isAdmin.auth().verifyIdToken(idToken);
     const { email, name } = decodedToken;
     console.log("GoogleLogin: Google ID token verified, decoded email:", email);
 
@@ -191,10 +221,12 @@ export const googleLogin = async (req: Request, res: Response) => {
         address: user.address,
         birthDate: user.birthDate,
         isStore: user.isStore,
+        isAdmin: user.isAdmin,
         tokens: user.tokens,
       },
     });
     console.log("GoogleLogin: Google login successful, response sent.");
+    return;
   } catch (error) {
     console.error("GoogleLogin: Error in Google login:", error);
     res.status(401).json({ message: "Token de Google inválido o expirado" });
@@ -211,9 +243,15 @@ export const completeGoogleUser = async (
     userId
   );
 
-  if (!userId || !password || typeof isStore === "undefined") {
+  if (
+    !userId ||
+    !password ||
+    typeof isStore === "undefined" ||
+    typeof isAdmin === "undefined"
+  ) {
     console.log("CompleteGoogleUser: Missing required fields in request.");
-    return res.status(400).json({ message: "Faltan campos obligatorios" });
+    res.status(400).json({ message: "Faltan campos obligatorios" });
+    return;
   }
 
   try {
@@ -222,7 +260,8 @@ export const completeGoogleUser = async (
 
     if (!user) {
       console.log("CompleteGoogleUser: User not found for userId:", userId);
-      return res.status(404).json({ message: "Usuario no encontrado" });
+      res.status(404).json({ message: "Usuario no encontrado" });
+      return;
     }
     console.log("CompleteGoogleUser: User found:", user.email);
 
@@ -231,7 +270,8 @@ export const completeGoogleUser = async (
         "CompleteGoogleUser: User profile already completed for userId:",
         userId
       );
-      return res.status(400).json({ message: "El perfil ya fue completado" });
+      res.status(400).json({ message: "El perfil ya fue completado" });
+      return;
     }
     console.log(
       "CompleteGoogleUser: User profile not yet completed, proceeding."
@@ -272,6 +312,7 @@ export const completeGoogleUser = async (
     Object.assign(user, {
       password: hashedPassword,
       isStore,
+      isAdmin,
       birthDate: parsedDate,
     });
 
@@ -285,9 +326,36 @@ export const completeGoogleUser = async (
     console.log(
       "CompleteGoogleUser: Profile completed successfully, response sent."
     );
+    return;
   } catch (err) {
     console.error("CompleteGoogleUser: Error in completeGoogleUser:", err);
     res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+// Verificar si ya existe un administrador
+export const checkAdminExists = async (req: Request, res: Response) => {
+  try {
+    console.log("CheckAdminExists: Checking if admin exists in system...");
+    const existingAdmin = await User.findOne({ isAdmin: true });
+
+    if (existingAdmin) {
+      console.log("CheckAdminExists: Admin found in system");
+      res.json({
+        exists: true,
+        message: "Ya existe un administrador en el sistema",
+      });
+    } else {
+      console.log("CheckAdminExists: No admin found in system");
+      res.json({
+        exists: false,
+        message: "No hay administrador registrado",
+      });
+    }
+    return;
+  } catch (err) {
+    console.error("CheckAdminExists: Server error:", err);
+    res.status(500).json({ error: "Error del servidor" });
   }
 };
 
@@ -306,6 +374,7 @@ export const getMe = async (req: Request, res: Response) => {
       address: user.address,
       birthDate: user.birthDate,
       isStore: user.isStore,
+      isAdmin: user.isAdmin,
       tokens: user.tokens,
     });
     return;
@@ -334,9 +403,7 @@ export const updateProfile = async (
     if (birthDate) {
       const formattedDate = moment(birthDate, ["YYYY-MM-DD", "DD/MM/YYYY"]);
       if (!formattedDate.isValid()) {
-        res
-          .status(400)
-          .json({ message: "Fecha de nacimiento inválida" });
+        res.status(400).json({ message: "Fecha de nacimiento inválida" });
       }
       updateData.birthDate = formattedDate.toDate();
     }

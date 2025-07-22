@@ -7,6 +7,7 @@ import {
   completeGoogleUser,
   getMe,
   updateProfile,
+  checkAdminExists,
 } from "../controllers/authController";
 import { isAuthenticated } from "../middleware/auth.middleware";
 
@@ -18,5 +19,6 @@ router.post("/google-login", googleLogin);
 router.post("/complete-google-user", completeGoogleUser);
 router.get("/me", isAuthenticated, getMe);
 router.put("/update-profile", isAuthenticated, updateProfile);
+router.get("/check-admin", checkAdminExists);
 
 export default router;
