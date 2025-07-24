@@ -224,7 +224,7 @@ export const getUserTokenTransactions = async (req: Request, res: Response) => {
 };
 
 /**
- * Endpoint para obtener todas las solicitudes de transferencia enviadas por el usuario y que están pendientes de aceptación.
+ * Endpoint to obtain all transfer requests sent by the user and pending acceptance
  */
 export const getPendingTransferRequestsSent = async (
   req: Request,
@@ -248,7 +248,7 @@ export const getPendingTransferRequestsSent = async (
 };
 
 /**
- * Endpoint para obtener todas las solicitudes de transferencia recibidas por el usuario y que están pendientes de aceptación.
+ * Endpoint to obtain all transfer requests received by the user and that are pending acceptance.
  */
 export const getPendingTransferRequestsReceived = async (
   req: Request,
@@ -276,7 +276,7 @@ export const getPendingTransferRequestsReceived = async (
 };
 
 /**
- * Endpoint para obtener todas las solicitudes de cancelación realizadas por el usuario.
+ * Endpoint to obtain all cancellation requests submitted by the user.
  */
 export const getUserCancellationRequests = async (
   req: Request,

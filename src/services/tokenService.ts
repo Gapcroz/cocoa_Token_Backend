@@ -864,16 +864,14 @@ class TokenService {
   }
 
   /**
-   * Obtiene todas las solicitudes de transferencia enviadas por un usuario y que están pendientes de aceptación.
-   * @param {string} userId - ID del usuario que envió las solicitudes.
+   * obtain all transfer requests sent by a user and that are pending acceptance.
+   * @param {string} userId -ID of user who sent the requests.
    */
   public async getPendingTransferRequestsSent(
     userId: string
   ): Promise<ITokenTransaction[]> {
     const user = await User.findById(userId);
-    console.log(
-      "Buscando transferencias enviadas pendientes por aceptar..."
-    );
+    console.log("Buscando transferencias enviadas pendientes por aceptar...");
     console.log("Usuario remitente:", user?.name);
     const results = await TokenTransaction.find({
       senderId: userId,
@@ -889,8 +887,8 @@ class TokenService {
   }
 
   /**
-   * Obtiene todas las solicitudes de transferencia recibidas por un usuario y que están pendientes de aceptación.
-   * @param {string} userId - ID del usuario que recibió las solicitudes.
+   * obtain all transfer requests received by a user and that are pending acceptance.
+   * @param {string} userId -ID of user who received the requests.
    */
   public async getPendingTransferRequestsReceived(
     userId: string
@@ -905,8 +903,8 @@ class TokenService {
   }
 
   /**
-   * Obtiene todas las solicitudes de cancelación enviadas por un usuario, en cualquier estado.
-   * @param {string} userId - ID del usuario que hizo la solicitud de cancelación.
+   * obtain all cancellation requests sent by a user, in any state.
+   * @param {string} userId - ID of the user who did the cancellation requests.
    */
   public async getUserCancellationRequests(
     userId: string
