@@ -199,10 +199,7 @@ export const cancelTransfer = async (req: Request, res: Response) => {
 /**
  * Endpoint to get a user's token transaction history.
  */
-export const getUserTokenTransactions = async (
-  req: Request,
-  res: Response,
-) => {
+export const getUserTokenTransactions = async (req: Request, res: Response) => {
   const userId = (req as any).user?._id;
 
   if (!userId) {
@@ -211,7 +208,7 @@ export const getUserTokenTransactions = async (
 
   try {
     const transactions = await tokenService.getUserTransactions(
-      userId.toString(),
+      userId.toString()
     );
     res.status(200).json(transactions);
   } catch (error: any) {
@@ -227,14 +224,99 @@ export const getUserTokenTransactions = async (
 };
 
 /**
+ * Endpoint para obtener todas las solicitudes de transferencia enviadas por el usuario y que están pendientes de aceptación.
+ */
+export const getPendingTransferRequestsSent = async (
+  req: Request,
+  res: Response
+) => {
+  const userId = (req as any).user?._id;
+
+  if (!userId) {
+    return res.status(401).json({ message: "No autenticado." });
+  }
+
+  try {
+    const sentRequests = await tokenService.getPendingTransferRequestsSent(
+      userId.toString()
+    );
+    res.status(200).json(sentRequests);
+  } catch (error: any) {
+    console.error("Error en getPendingTransferRequestsSent controller:", error);
+    res.status(500).json({ message: "Error al obtener solicitudes enviadas." });
+  }
+};
+
+/**
+ * Endpoint para obtener todas las solicitudes de transferencia recibidas por el usuario y que están pendientes de aceptación.
+ */
+export const getPendingTransferRequestsReceived = async (
+  req: Request,
+  res: Response
+) => {
+  const userId = (req as any).user?._id;
+
+  if (!userId) {
+    return res.status(401).json({ message: "No autenticado." });
+  }
+
+  try {
+    const receivedRequests =
+      await tokenService.getPendingTransferRequestsReceived(userId.toString());
+    res.status(200).json(receivedRequests);
+  } catch (error: any) {
+    console.error(
+      "Error en getPendingTransferRequestsReceived controller:",
+      error
+    );
+    res
+      .status(500)
+      .json({ message: "Error al obtener solicitudes recibidas." });
+  }
+};
+
+/**
+ * Endpoint para obtener todas las solicitudes de cancelación realizadas por el usuario.
+ */
+export const getUserCancellationRequests = async (
+  req: Request,
+  res: Response
+) => {
+  const userId = (req as any).user?._id;
+
+  if (!userId) {
+    return res.status(401).json({ message: "No autenticado." });
+  }
+
+  try {
+    const requests = await tokenService.getUserCancellationRequests(
+      userId.toString()
+    );
+    res.status(200).json(requests);
+  } catch (error: any) {
+    console.error("Error en getUserCancellationRequests controller:", error);
+    res
+      .status(500)
+      .json({
+        message: "Error al obtener solicitudes de cancelación del usuario.",
+      });
+  }
+};
+
+/**
  * Endpoint for a user to create a request to cancel a completed transaction.
  */
-export const createCancellationRequest = async (req: Request, res: Response) => {
+export const createCancellationRequest = async (
+  req: Request,
+  res: Response
+) => {
   const userId = (req as any).user?._id;
   const { transactionId, reason } = req.body; // transactionId of the transaction to cancel, user's reason
 
   if (!userId || !transactionId || !reason) {
-    return res.status(400).json({ message: "Faltan datos requeridos: transactionId, reason." });
+    return res
+      .status(400)
+      .json({ message: "Faltan datos requeridos: transactionId, reason." });
   }
 
   try {
@@ -254,10 +336,11 @@ export const createCancellationRequest = async (req: Request, res: Response) => 
       return res.status(error.statusCode).json({ message: error.message });
     }
     console.error("Error en createCancellationRequest controller:", error);
-    res.status(500).json({ message: "Error al enviar solicitud de cancelación." });
+    res
+      .status(500)
+      .json({ message: "Error al enviar solicitud de cancelación." });
   }
 };
-
 
 // --- ADMIN CONTROLLERS ---
 
@@ -308,7 +391,7 @@ export const adminAdjustUserTokens = async (req: Request, res: Response) => {
  */
 export const adminUpdateTransactionStatus = async (
   req: Request,
-  res: Response,
+  res: Response
 ) => {
   const adminId = (req as any).user?._id;
   const { transactionId } = req.params; // Transaction ID from URL param
@@ -325,7 +408,13 @@ export const adminUpdateTransactionStatus = async (
       .json({ message: "Faltan datos requeridos: transactionId, status." });
   }
   // Validate status to be one of the enum values, including new ones
-  const validStatuses = ["completed", "failed", "cancelled", "pending_acceptance", "rejected"];
+  const validStatuses = [
+    "completed",
+    "failed",
+    "cancelled",
+    "pending_acceptance",
+    "rejected",
+  ];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ message: "Estado de transacción inválido." });
   }
@@ -355,38 +444,60 @@ export const adminUpdateTransactionStatus = async (
 /**
  * Admin endpoint to get all pending cancellation requests from users.
  */
-export const adminGetPendingCancellationRequests = async (req: Request, res: Response) => {
+export const adminGetPendingCancellationRequests = async (
+  req: Request,
+  res: Response
+) => {
   const adminId = (req as any).user?._id; // For admin check
 
   if (!adminId) {
-    return res.status(401).json({ message: "No autenticado como administrador." });
+    return res
+      .status(401)
+      .json({ message: "No autenticado como administrador." });
   }
 
   try {
     const requests = await tokenService.getPendingCancellationRequests();
     res.status(200).json(requests);
   } catch (error: any) {
-    console.error("Error en adminGetPendingCancellationRequests controller:", error);
-    res.status(500).json({ message: "Error al obtener solicitudes de cancelación pendientes." });
+    console.error(
+      "Error en adminGetPendingCancellationRequests controller:",
+      error
+    );
+    res
+      .status(500)
+      .json({
+        message: "Error al obtener solicitudes de cancelación pendientes.",
+      });
   }
 };
 
 /**
  * Admin endpoint to review (approve or reject) a user's cancellation request.
  */
-export const adminReviewCancellationRequest = async (req: Request, res: Response) => {
+export const adminReviewCancellationRequest = async (
+  req: Request,
+  res: Response
+) => {
   const adminId = (req as any).user?._id; // For admin check
   const { requestId } = req.params; // Cancellation request ID from URL param
   const { action, reviewReason } = req.body; // action: 'approve' or 'reject'
 
   if (!adminId) {
-    return res.status(401).json({ message: "No autenticado como administrador." });
+    return res
+      .status(401)
+      .json({ message: "No autenticado como administrador." });
   }
   if (!requestId || !action) {
-    return res.status(400).json({ message: "Faltan datos requeridos: requestId, action." });
+    return res
+      .status(400)
+      .json({ message: "Faltan datos requeridos: requestId, action." });
   }
-  if (!["approve", "reject"].includes(action)) { // Validate action type
-    return res.status(400).json({ message: "Acción inválida. Debe ser 'approve' o 'reject'." });
+  if (!["approve", "reject"].includes(action)) {
+    // Validate action type
+    return res
+      .status(400)
+      .json({ message: "Acción inválida. Debe ser 'approve' o 'reject'." });
   }
 
   try {
@@ -397,7 +508,9 @@ export const adminReviewCancellationRequest = async (req: Request, res: Response
       reviewReason,
     });
     res.status(200).json({
-      message: `Solicitud de cancelación ${action === 'approve' ? 'aprobada' : 'rechazada'}.`,
+      message: `Solicitud de cancelación ${
+        action === "approve" ? "aprobada" : "rechazada"
+      }.`,
       request: updatedRequest,
     });
   } catch (error: any) {
@@ -405,27 +518,32 @@ export const adminReviewCancellationRequest = async (req: Request, res: Response
       return res.status(error.statusCode).json({ message: error.message });
     }
     console.error("Error en adminReviewCancellationRequest controller:", error);
-    res.status(500).json({ message: "Error al revisar solicitud de cancelación." });
+    res
+      .status(500)
+      .json({ message: "Error al revisar solicitud de cancelación." });
   }
 };
 
-
 // Get all transactions for admin view
 export const adminGetAllTransactions = async (req: Request, res: Response) => {
-    const adminId = (req as any).user?._id; // For admin check
+  const adminId = (req as any).user?._id; // For admin check
 
-    if (!adminId) {
-        return res.status(401).json({ message: "No autenticado como administrador." });
-    }
+  if (!adminId) {
+    return res
+      .status(401)
+      .json({ message: "No autenticado como administrador." });
+  }
 
-    try {
-        const transactions = await TokenTransaction.find({})
-            .populate("senderId", "name email")
-            .populate("receiverId", "name email")
-            .sort({ createdAt: -1 });
-        res.status(200).json(transactions);
-    } catch (error: any) {
-        console.error("Error en adminGetAllTransactions controller:", error);
-        res.status(500).json({ message: "Error al obtener todas las transacciones." });
-    }
+  try {
+    const transactions = await TokenTransaction.find({})
+      .populate("senderId", "name email")
+      .populate("receiverId", "name email")
+      .sort({ createdAt: -1 });
+    res.status(200).json(transactions);
+  } catch (error: any) {
+    console.error("Error en adminGetAllTransactions controller:", error);
+    res
+      .status(500)
+      .json({ message: "Error al obtener todas las transacciones." });
+  }
 };

@@ -12,6 +12,9 @@ import {
   createCancellationRequest, // NEW USER ROUTE
   adminGetPendingCancellationRequests, // NEW ADMIN ROUTE
   adminReviewCancellationRequest, // NEW ADMIN ROUTE
+  getPendingTransferRequestsSent,
+  getPendingTransferRequestsReceived,
+  getUserCancellationRequests,
 } from "../controllers/tokenController";
 import { isAuthenticated, isAdmin } from "../middleware/auth.middleware"; // Ensure isAdmin is imported
 
@@ -69,6 +72,16 @@ router.get("/admin/cancellation-requests/pending", isAuthenticated, isAdmin, adm
 // Route for an admin to review (approve or reject) a specific cancellation request
 // requestId comes from the URL param
 router.post("/admin/cancellation-requests/:requestId/review", isAuthenticated, isAdmin, adminReviewCancellationRequest);
+
+// Route to get pending transfer requests sent by the user
+router.get("/transfers/pending/sent", isAuthenticated, getPendingTransferRequestsSent);
+
+// Route to get pending transfer requests received by the user
+router.get("/transfers/pending/received", isAuthenticated, getPendingTransferRequestsReceived);
+
+// Route for a user to view their cancellation requests
+router.get("/transactions/cancellation-requests", isAuthenticated, getUserCancellationRequests);
+
 
 
 export default router;

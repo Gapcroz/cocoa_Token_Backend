@@ -82,7 +82,7 @@ class TokenService {
    * @throws {CustomError} Specific error types for better client feedback.
    */
   public async requestTransfer(
-    options: TransferTokensOptions,
+    options: TransferTokensOptions
   ): Promise<ITokenTransaction> {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -92,7 +92,7 @@ class TokenService {
 
       if (amount <= 0) {
         throw new BadRequestError(
-          "El monto a transferir debe ser mayor a cero.",
+          "El monto a transferir debe ser mayor a cero."
         );
       }
 
@@ -105,15 +105,15 @@ class TokenService {
           await session.abortTransaction();
           if (existingTransaction.status === "pending_acceptance") {
             throw new TransactionExistsError(
-              "Una solicitud de transferencia con este ID de solicitud ya está pendiente de aceptación.",
+              "Una solicitud de transferencia con este ID de solicitud ya está pendiente de aceptación."
             );
           } else if (existingTransaction.status === "completed") {
             throw new TransactionExistsError(
-              "Esta transferencia ya fue completada.",
+              "Esta transferencia ya fue completada."
             );
           } else {
             throw new TransactionExistsError(
-              `Una transacción con este ID de solicitud ya existe con estado: ${existingTransaction.status}.`,
+              `Una transacción con este ID de solicitud ya existe con estado: ${existingTransaction.status}.`
             );
           }
         }
@@ -130,26 +130,28 @@ class TokenService {
       }
       if (!receiver) {
         receiver = await User.findOne({ email: receiverIdentifier }).session(
-          session,
+          session
         );
       }
       if (!receiver) {
         throw new NotFoundError("Destinatario no encontrado.");
       }
-      if (sender._id ===receiver._id ||sender.email === receiver.email) {
+      if (sender._id === receiver._id || sender.email === receiver.email) {
         throw new BadRequestError("No puedes transferir tokens a ti mismo.");
       }
 
       if (sender.tokens < amount) {
         throw new InsufficientFundsError(
-          "Tokens insuficientes para la solicitud de transferencia.",
+          "Tokens insuficientes para la solicitud de transferencia."
         );
       }
 
       // Check if sender's funds are currently under cooldown
       if (sender.lastCancelledTransferCooldownUntil) {
         if (new Date() < sender.lastCancelledTransferCooldownUntil) {
-            throw new BadRequestError("Los fondos del remitente están en período de enfriamiento debido a una cancelación reciente. Inténtelo más tarde.");
+          throw new BadRequestError(
+            "Los fondos del remitente están en período de enfriamiento debido a una cancelación reciente. Inténtelo más tarde."
+          );
         }
       }
 
@@ -171,14 +173,11 @@ class TokenService {
       const senderUpdate = await User.findByIdAndUpdate(
         sender._id,
         { $inc: { tokens: -amount } },
-        { new: true, session: session },
+        { new: true, session: session }
       );
 
       if (!senderUpdate) {
-        throw new CustomError(
-          "Error al reservar tokens del remitente.",
-          500,
-        );
+        throw new CustomError("Error al reservar tokens del remitente.", 500);
       }
 
       await session.commitTransaction();
@@ -190,10 +189,10 @@ class TokenService {
       }
       console.error(
         "Error durante la solicitud de transferencia de tokens (servicio):",
-        error,
+        error
       );
       throw new CustomError(
-        "Falló la solicitud de transferencia de tokens debido a un error interno.",
+        "Falló la solicitud de transferencia de tokens debido a un error interno."
       );
     } finally {
       session.endSession();
@@ -210,7 +209,7 @@ class TokenService {
    * @throws {BadRequestError} If transaction is not in 'pending_acceptance' state or receiver mismatch.
    */
   public async acceptTransfer(
-    options: AcceptTransferOptions,
+    options: AcceptTransferOptions
   ): Promise<ITokenTransaction> {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -218,20 +217,22 @@ class TokenService {
     try {
       const { transactionId, receiverId } = options;
 
-      const transaction = await TokenTransaction.findById(transactionId).session(session);
+      const transaction = await TokenTransaction.findById(
+        transactionId
+      ).session(session);
       if (!transaction) {
         throw new NotFoundError("Solicitud de transferencia no encontrada.");
       }
 
       if (transaction.status !== "pending_acceptance") {
         throw new BadRequestError(
-          `La transacción no está pendiente de aceptación, estado actual: ${transaction.status}.`,
+          `La transacción no está pendiente de aceptación, estado actual: ${transaction.status}.`
         );
       }
 
       if (!transaction.receiverId.equals(receiverId)) {
         throw new BadRequestError(
-          "No estás autorizado para aceptar esta transferencia (ID de receptor no coincide).",
+          "No estás autorizado para aceptar esta transferencia (ID de receptor no coincide)."
         );
       }
 
@@ -244,7 +245,7 @@ class TokenService {
       const receiverUpdate = await User.findByIdAndUpdate(
         receiver._id,
         { $inc: { tokens: transaction.amount } },
-        { new: true, session: session },
+        { new: true, session: session }
       );
 
       if (!receiverUpdate) {
@@ -254,7 +255,9 @@ class TokenService {
       // Update original transaction status to completed
       transaction.status = "completed";
       transaction.transactionType = "transfer_acceptance"; // Change type to reflect acceptance
-      transaction.description = `Transferencia aceptada de ${transaction.senderId} por ${receiver.email || receiver.name}`;
+      transaction.description = `Transferencia aceptada de ${
+        transaction.senderId
+      } por ${receiver.email || receiver.name}`;
       await transaction.save({ session });
 
       await session.commitTransaction();
@@ -266,10 +269,10 @@ class TokenService {
       }
       console.error(
         "Error durante la aceptación de transferencia de tokens (servicio):",
-        error,
+        error
       );
       throw new CustomError(
-        "Falló la aceptación de transferencia de tokens debido a un error interno.",
+        "Falló la aceptación de transferencia de tokens debido a un error interno."
       );
     } finally {
       session.endSession();
@@ -286,7 +289,7 @@ class TokenService {
    * @throws {BadRequestError} If transaction is not in 'pending_acceptance' state or receiver mismatch.
    */
   public async rejectTransfer(
-    options: RejectTransferOptions,
+    options: RejectTransferOptions
   ): Promise<ITokenTransaction> {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -294,20 +297,22 @@ class TokenService {
     try {
       const { transactionId, receiverId, reason } = options;
 
-      const transaction = await TokenTransaction.findById(transactionId).session(session);
+      const transaction = await TokenTransaction.findById(
+        transactionId
+      ).session(session);
       if (!transaction) {
         throw new NotFoundError("Solicitud de transferencia no encontrada.");
       }
 
       if (transaction.status !== "pending_acceptance") {
         throw new BadRequestError(
-          `La transacción no está pendiente de aceptación, estado actual: ${transaction.status}.`,
+          `La transacción no está pendiente de aceptación, estado actual: ${transaction.status}.`
         );
       }
 
       if (!transaction.receiverId.equals(receiverId)) {
         throw new BadRequestError(
-          "No estás autorizado para rechazar esta transferencia (ID de receptor no coincide).",
+          "No estás autorizado para rechazar esta transferencia (ID de receptor no coincide)."
         );
       }
 
@@ -315,7 +320,7 @@ class TokenService {
       if (!sender) {
         // This is a critical data inconsistency, log it!
         console.error(
-          `CRITICAL: Sender ${transaction.senderId} not found for pending transaction ${transaction._id}`,
+          `CRITICAL: Sender ${transaction.senderId} not found for pending transaction ${transaction._id}`
         );
         throw new CustomError("Remitente de la transacción no encontrado.");
       }
@@ -324,19 +329,21 @@ class TokenService {
       const senderUpdate = await User.findByIdAndUpdate(
         sender._id,
         { $inc: { tokens: transaction.amount } },
-        { new: true, session: session },
+        { new: true, session: session }
       );
 
       if (!senderUpdate) {
         throw new CustomError(
-          "Error al devolver tokens al remitente (rejección).",
+          "Error al devolver tokens al remitente (rejección)."
         );
       }
 
       // Update original transaction status to rejected
       transaction.status = "rejected";
       transaction.transactionType = "transfer_rejection"; // Change type to reflect rejection
-      transaction.description = `Transferencia rechazada por ${receiverId}. Motivo: ${reason || "No especificado"}. Fondos devueltos al remitente.`;
+      transaction.description = `Transferencia rechazada por ${receiverId}. Motivo: ${
+        reason || "No especificado"
+      }. Fondos devueltos al remitente.`;
       await transaction.save({ session });
 
       await session.commitTransaction();
@@ -348,10 +355,10 @@ class TokenService {
       }
       console.error(
         "Error durante el rechazo de transferencia de tokens (servicio):",
-        error,
+        error
       );
       throw new CustomError(
-        "Falló el rechazo de transferencia de tokens debido a un error interno.",
+        "Falló el rechazo de transferencia de tokens debido a un error interno."
       );
     } finally {
       session.endSession();
@@ -369,7 +376,7 @@ class TokenService {
    * @throws {BadRequestError} If transaction is not 'completed' or already cancelled.
    */
   public async cancelTokens(
-    options: CancelTokensOptions,
+    options: CancelTokensOptions
   ): Promise<ITokenTransaction> {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -378,7 +385,7 @@ class TokenService {
       const { transactionId, adminId, reason } = options;
 
       const originalTransaction = await TokenTransaction.findById(
-        transactionId,
+        transactionId
       ).session(session);
       if (!originalTransaction) {
         throw new NotFoundError("Transacción original no encontrada.");
@@ -386,30 +393,35 @@ class TokenService {
 
       if (originalTransaction.status === "cancelled") {
         throw new BadRequestError(
-          "Esta transacción ya ha sido cancelada previamente.",
+          "Esta transacción ya ha sido cancelada previamente."
         );
       }
       if (originalTransaction.status !== "completed") {
         throw new BadRequestError(
-          `Solo se pueden cancelar transacciones en estado 'completed'. Estado actual: ${originalTransaction.status}.`,
+          `Solo se pueden cancelar transacciones en estado 'completed'. Estado actual: ${originalTransaction.status}.`
         );
       }
-      if (originalTransaction.transactionType === "transfer_cancellation" || originalTransaction.transactionType === "transfer_rejection") {
-        throw new BadRequestError("No se puede cancelar una transacción de reversión/cancelación.");
+      if (
+        originalTransaction.transactionType === "transfer_cancellation" ||
+        originalTransaction.transactionType === "transfer_rejection"
+      ) {
+        throw new BadRequestError(
+          "No se puede cancelar una transacción de reversión/cancelación."
+        );
       }
 
       const senderOfOriginal = await User.findById(
-        originalTransaction.senderId,
+        originalTransaction.senderId
       ).session(session);
       const receiverOfOriginal = await User.findById(
-        originalTransaction.receiverId,
+        originalTransaction.receiverId
       ).session(session);
       const adminUser = await User.findById(adminId).session(session); // For logging who cancelled
 
       if (!senderOfOriginal || !receiverOfOriginal || !adminUser) {
         throw new CustomError(
           "Error de datos: remitente, receptor o administrador no encontrados.",
-          500,
+          500
         );
       }
 
@@ -420,12 +432,12 @@ class TokenService {
       const receiverUpdate = await User.findByIdAndUpdate(
         receiverOfOriginal._id,
         { $inc: { tokens: -amountToRevert } },
-        { new: true, session: session },
+        { new: true, session: session }
       );
 
       if (!receiverUpdate) {
         throw new CustomError(
-          "Error al debitar tokens del receptor original para la cancelación.",
+          "Error al debitar tokens del receptor original para la cancelación."
         );
       }
 
@@ -433,12 +445,12 @@ class TokenService {
       const senderUpdate = await User.findByIdAndUpdate(
         senderOfOriginal._id,
         { $inc: { tokens: amountToRevert } },
-        { new: true, session: session },
+        { new: true, session: session }
       );
 
       if (!senderUpdate) {
         throw new CustomError(
-          "Error al acreditar tokens al remitente original para la cancelación.",
+          "Error al acreditar tokens al remitente original para la cancelación."
         );
       }
 
@@ -468,10 +480,12 @@ class TokenService {
       // This is to prevent the original sender from immediately using the reverted funds
       await User.findByIdAndUpdate(
         senderOfOriginal._id,
-        { lastCancelledTransferCooldownUntil: originalTransaction.cancellationDetails.cooldownUntil },
+        {
+          lastCancelledTransferCooldownUntil:
+            originalTransaction.cancellationDetails.cooldownUntil,
+        },
         { session: session }
       );
-
 
       await session.commitTransaction();
       return newCancellationTransaction;
@@ -482,10 +496,10 @@ class TokenService {
       }
       console.error(
         "Error durante la cancelación de tokens (servicio):",
-        error,
+        error
       );
       throw new CustomError(
-        "Fallo la cancelación de tokens debido a un error interno.",
+        "Fallo la cancelación de tokens debido a un error interno."
       );
     } finally {
       session.endSession();
@@ -498,7 +512,7 @@ class TokenService {
    * @returns {Promise<ITokenTransaction[]>} A list of token transactions.
    */
   public async getUserTransactions(
-    userId: string,
+    userId: string
   ): Promise<ITokenTransaction[]> {
     return await TokenTransaction.find({
       $or: [{ senderId: userId }, { receiverId: userId }],
@@ -518,7 +532,7 @@ class TokenService {
    * @throws {CustomError} For other internal errors.
    */
   public async adminAdjustTokens(
-    options: AdminAdjustTokensOptions,
+    options: AdminAdjustTokensOptions
   ): Promise<IUser> {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -539,12 +553,12 @@ class TokenService {
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $inc: { tokens: amount } },
-        { new: true, session: session },
+        { new: true, session: session }
       );
 
       if (!updatedUser) {
         throw new CustomError(
-          "Fallo al actualizar el balance de tokens del usuario.",
+          "Fallo al actualizar el balance de tokens del usuario."
         );
       }
 
@@ -559,7 +573,7 @@ class TokenService {
 
       if (amount < 0) {
         // If tokens are being debited from user
-        transaction.senderId = new mongoose.Types.ObjectId(userToAdjust._id) // User is the actual sender of tokens
+        transaction.senderId = new mongoose.Types.ObjectId(userToAdjust._id); // User is the actual sender of tokens
         transaction.receiverId = new mongoose.Types.ObjectId(adminId); // Admin is the conceptual receiver (system)
         transaction.transactionType = "admin_debit";
         transaction.description = `Débito de tokens por administrador (${
@@ -586,10 +600,10 @@ class TokenService {
       }
       console.error(
         "Error durante ajuste de tokens por administrador (servicio):",
-        error,
+        error
       );
       throw new CustomError(
-        "Fallo el ajuste de tokens por administrador debido a un error interno.",
+        "Fallo el ajuste de tokens por administrador debido a un error interno."
       );
     } finally {
       session.endSession();
@@ -607,7 +621,7 @@ class TokenService {
    * @throws {BadRequestError} If new status is invalid for current state.
    */
   public async adminUpdateTransactionStatus(
-    options: AdminUpdateTransactionStatusOptions,
+    options: AdminUpdateTransactionStatusOptions
   ): Promise<ITokenTransaction> {
     const { transactionId, status, adminId, reason } = options;
 
@@ -620,25 +634,47 @@ class TokenService {
     const currentStatus = transaction.status;
 
     if (currentStatus === status) {
-      throw new BadRequestError("El estado de la transacción ya es el solicitado.");
+      throw new BadRequestError(
+        "El estado de la transacción ya es el solicitado."
+      );
     }
 
     // Prevent direct status changes that should be handled by specific business logic (e.g., cancellations)
     if (status === "cancelled") {
       throw new BadRequestError(
-        "Utilice el método 'cancelTokens' para cancelar una transacción, no este endpoint.",
+        "Utilice el método 'cancelTokens' para cancelar una transacción, no este endpoint."
       );
     }
-    if (status === "completed" && (currentStatus === "failed" || currentStatus === "rejected")) {
-        throw new BadRequestError("No se puede marcar una transacción fallida o rechazada como 'completada' directamente. Realice un nuevo ajuste si es necesario.");
+    if (
+      status === "completed" &&
+      (currentStatus === "failed" || currentStatus === "rejected")
+    ) {
+      throw new BadRequestError(
+        "No se puede marcar una transacción fallida o rechazada como 'completada' directamente. Realice un nuevo ajuste si es necesario."
+      );
     }
-    if (status === "pending_acceptance" && (currentStatus === "completed" || currentStatus === "failed" || currentStatus === "cancelled" || currentStatus === "rejected")) {
-        throw new BadRequestError(`No se puede mover una transacción de '${currentStatus}' a 'pending_acceptance'.`);
+    if (
+      status === "pending_acceptance" &&
+      (currentStatus === "completed" ||
+        currentStatus === "failed" ||
+        currentStatus === "cancelled" ||
+        currentStatus === "rejected")
+    ) {
+      throw new BadRequestError(
+        `No se puede mover una transacción de '${currentStatus}' a 'pending_acceptance'.`
+      );
     }
 
     // Generally allow moving from pending/pending_acceptance to failed/rejected
-    if (currentStatus === "pending_acceptance" && status !== "rejected" && status !== "failed" && status !== "completed") {
-        throw new BadRequestError(`Transición de estado de '${currentStatus}' a '${status}' no permitida.`);
+    if (
+      currentStatus === "pending_acceptance" &&
+      status !== "rejected" &&
+      status !== "failed" &&
+      status !== "completed"
+    ) {
+      throw new BadRequestError(
+        `Transición de estado de '${currentStatus}' a '${status}' no permitida.`
+      );
     }
 
     transaction.status = status;
@@ -661,7 +697,7 @@ class TokenService {
    * @throws {BadRequestError} If transaction is not completed or already has a pending request.
    */
   public async createCancellationRequest(
-    options: CreateCancellationRequestOptions,
+    options: CreateCancellationRequestOptions
   ): Promise<ICancellationRequest> {
     const { transactionId, userId, reason } = options;
 
@@ -669,7 +705,9 @@ class TokenService {
     session.startTransaction();
 
     try {
-      const transaction = await TokenTransaction.findById(transactionId).session(session);
+      const transaction = await TokenTransaction.findById(
+        transactionId
+      ).session(session);
       if (!transaction) {
         throw new NotFoundError("Transacción no encontrada.");
       }
@@ -678,10 +716,10 @@ class TokenService {
       if (
         transaction.status !== "completed" ||
         (transaction.transactionType !== "transfer_acceptance" &&
-         transaction.transactionType !== "transfer") // Allow cancellation of original direct transfers too if you still have them
+          transaction.transactionType !== "transfer") // Allow cancellation of original direct transfers too if you still have them
       ) {
         throw new BadRequestError(
-          `Solo se pueden solicitar cancelaciones para transferencias completadas. Estado actual: ${transaction.status}.`,
+          `Solo se pueden solicitar cancelaciones para transferencias completadas. Estado actual: ${transaction.status}.`
         );
       }
 
@@ -691,7 +729,7 @@ class TokenService {
         !transaction.receiverId.equals(userId)
       ) {
         throw new BadRequestError(
-          "No tienes permiso para solicitar la cancelación de esta transacción.",
+          "No tienes permiso para solicitar la cancelación de esta transacción."
         );
       }
 
@@ -703,7 +741,7 @@ class TokenService {
 
       if (existingRequest) {
         throw new ConflictError(
-          "Ya existe una solicitud de cancelación pendiente para esta transacción.",
+          "Ya existe una solicitud de cancelación pendiente para esta transacción."
         );
       }
 
@@ -724,10 +762,10 @@ class TokenService {
       }
       console.error(
         "Error durante la creación de la solicitud de cancelación:",
-        error,
+        error
       );
       throw new CustomError(
-        "Falló la creación de la solicitud de cancelación debido a un error interno.",
+        "Falló la creación de la solicitud de cancelación debido a un error interno."
       );
     } finally {
       session.endSession();
@@ -744,7 +782,7 @@ class TokenService {
    * @throws {BadRequestError} If request is not pending.
    */
   public async reviewCancellationRequest(
-    options: ReviewCancellationRequestOptions,
+    options: ReviewCancellationRequestOptions
   ): Promise<ICancellationRequest> {
     const { requestId, adminId, action, reviewReason } = options;
 
@@ -752,15 +790,15 @@ class TokenService {
     session.startTransaction();
 
     try {
-      const request = await CancellationRequest.findById(requestId).session(session);
+      const request = await CancellationRequest.findById(requestId).session(
+        session
+      );
       if (!request) {
         throw new NotFoundError("Solicitud de cancelación no encontrada.");
       }
 
       if (request.status !== "pending") {
-        throw new BadRequestError(
-          `La solicitud ya ha sido ${request.status}.`,
-        );
+        throw new BadRequestError(`La solicitud ya ha sido ${request.status}.`);
       }
 
       request.reviewedBy = new mongoose.Types.ObjectId(adminId);
@@ -773,15 +811,23 @@ class TokenService {
         const cancelledTransaction = await this.cancelTokens({
           transactionId: request.transactionId.toString(),
           adminId: adminId,
-          reason: `Aprobación de solicitud de cancelación #${request._id}. Motivo del usuario: ${request.reason}. Motivo del admin: ${reviewReason || 'N/A'}`,
+          reason: `Aprobación de solicitud de cancelación #${
+            request._id
+          }. Motivo del usuario: ${request.reason}. Motivo del admin: ${
+            reviewReason || "N/A"
+          }`,
         });
         // We might want to link the original request to the cancellation transaction if needed for audit:
         // cancelledTransaction.cancellationDetails.requestId = request._id; // Add this field to TokenTransaction if needed
         // await cancelledTransaction.save({ session });
-        console.log(`Transacción ${request.transactionId} cancelada por aprobación de solicitud ${request._id}`);
+        console.log(
+          `Transacción ${request.transactionId} cancelada por aprobación de solicitud ${request._id}`
+        );
       } else if (action === "rejected") {
         // No token action needed for rejection, just update the request status
-        console.log(`Solicitud de cancelación ${request._id} rechazada por admin ${adminId}`);
+        console.log(
+          `Solicitud de cancelación ${request._id} rechazada por admin ${adminId}`
+        );
       }
 
       await request.save({ session });
@@ -792,8 +838,13 @@ class TokenService {
       if (error instanceof CustomError) {
         throw error;
       }
-      console.error("Error durante la revisión de la solicitud de cancelación:", error);
-      throw new CustomError("Falló la revisión de la solicitud de cancelación debido a un error interno.");
+      console.error(
+        "Error durante la revisión de la solicitud de cancelación:",
+        error
+      );
+      throw new CustomError(
+        "Falló la revisión de la solicitud de cancelación debido a un error interno."
+      );
     } finally {
       session.endSession();
     }
@@ -803,13 +854,69 @@ class TokenService {
    * Admin function to get all pending cancellation requests.
    * @returns {Promise<ICancellationRequest[]>} List of pending requests.
    */
-  public async getPendingCancellationRequests(): Promise<ICancellationRequest[]> {
+  public async getPendingCancellationRequests(): Promise<
+    ICancellationRequest[]
+  > {
     return await CancellationRequest.find({ status: "pending" })
       .populate("transactionId") // Populate the transaction details
       .populate("requestedBy", "name email")
       .sort({ createdAt: 1 }); // Oldest first
   }
-}
 
+  /**
+   * Obtiene todas las solicitudes de transferencia enviadas por un usuario y que están pendientes de aceptación.
+   * @param {string} userId - ID del usuario que envió las solicitudes.
+   */
+  public async getPendingTransferRequestsSent(
+    userId: string
+  ): Promise<ITokenTransaction[]> {
+    const user = await User.findById(userId);
+    console.log(
+      "Buscando transferencias enviadas pendientes por aceptar..."
+    );
+    console.log("Usuario remitente:", user?.name);
+    const results = await TokenTransaction.find({
+      senderId: userId,
+      status: "pending_acceptance",
+      transactionType: "transfer_request",
+    })
+      .populate("receiverId", "name email")
+      .sort({ createdAt: -1 });
+    console.log(
+      `Se encontraron ${results.length} transferencias pendientes enviadas.`
+    );
+    return results;
+  }
+
+  /**
+   * Obtiene todas las solicitudes de transferencia recibidas por un usuario y que están pendientes de aceptación.
+   * @param {string} userId - ID del usuario que recibió las solicitudes.
+   */
+  public async getPendingTransferRequestsReceived(
+    userId: string
+  ): Promise<ITokenTransaction[]> {
+    return await TokenTransaction.find({
+      receiverId: userId,
+      status: "pending_acceptance",
+      transactionType: "transfer_request",
+    })
+      .populate("senderId", "name email")
+      .sort({ createdAt: -1 });
+  }
+
+  /**
+   * Obtiene todas las solicitudes de cancelación enviadas por un usuario, en cualquier estado.
+   * @param {string} userId - ID del usuario que hizo la solicitud de cancelación.
+   */
+  public async getUserCancellationRequests(
+    userId: string
+  ): Promise<ICancellationRequest[]> {
+    return await CancellationRequest.find({
+      requestedBy: userId,
+    })
+      .populate("transactionId")
+      .sort({ createdAt: -1 });
+  }
+}
 
 export default new TokenService();
