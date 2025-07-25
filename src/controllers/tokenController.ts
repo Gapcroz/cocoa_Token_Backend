@@ -295,11 +295,9 @@ export const getUserCancellationRequests = async (
     res.status(200).json(requests);
   } catch (error: any) {
     console.error("Error en getUserCancellationRequests controller:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error al obtener solicitudes de cancelación del usuario.",
-      });
+    res.status(500).json({
+      message: "Error al obtener solicitudes de cancelación del usuario.",
+    });
   }
 };
 
@@ -464,11 +462,9 @@ export const adminGetPendingCancellationRequests = async (
       "Error en adminGetPendingCancellationRequests controller:",
       error
     );
-    res
-      .status(500)
-      .json({
-        message: "Error al obtener solicitudes de cancelación pendientes.",
-      });
+    res.status(500).json({
+      message: "Error al obtener solicitudes de cancelación pendientes.",
+    });
   }
 };
 
@@ -545,5 +541,101 @@ export const adminGetAllTransactions = async (req: Request, res: Response) => {
     res
       .status(500)
       .json({ message: "Error al obtener todas las transacciones." });
+  }
+};
+
+/**
+ * Admin: Get detailed info of a specific transaction by ID.
+ */
+export const adminGetTransactionById = async (req: Request, res: Response) => {
+  const adminId = (req as any).user?._id;
+  const { transactionId } = req.params;
+
+  if (!adminId) {
+    return res
+      .status(401)
+      .json({ message: "No autenticado como administrador." });
+  }
+
+  if (!transactionId) {
+    return res.status(400).json({ message: "Falta el ID de la transacción." });
+  }
+
+  try {
+    const transaction = await tokenService.getTransactionById(transactionId);
+    res.status(200).json(transaction);
+  } catch (error: any) {
+    if (error instanceof CustomError) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    console.error("Error en adminGetTransactionById controller:", error);
+    res.status(500).json({ message: "Error al obtener la transacción." });
+  }
+};
+
+/**
+ * Admin: Get all transactions involving a specific user.
+ */
+export const adminGetUserTransactions = async (req: Request, res: Response) => {
+  const adminId = (req as any).user?._id;
+  const { userId } = req.params;
+
+  if (!adminId) {
+    return res
+      .status(401)
+      .json({ message: "No autenticado como administrador." });
+  }
+
+  if (!userId) {
+    return res.status(400).json({ message: "Falta el ID del usuario." });
+  }
+
+  try {
+    const transactions = await tokenService.getUserTransactionsByAdmin(userId);
+    res.status(200).json(transactions);
+  } catch (error: any) {
+    if (error instanceof CustomError) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    console.error("Error en adminGetUserTransactions controller:", error);
+    res
+      .status(500)
+      .json({ message: "Error al obtener transacciones del usuario." });
+  }
+};
+
+/**
+ * Admin: Get the current token balance of a specific user.
+ */
+export const adminGetUserBalance = async (req: Request, res: Response) => {
+  const adminId = (req as any).user?._id;
+  const { userId } = req.params;
+
+  if (!adminId) {
+    return res
+      .status(401)
+      .json({ message: "No autenticado como administrador." });
+  }
+
+  if (!userId) {
+    return res.status(400).json({ message: "Falta el ID del usuario." });
+  }
+
+  try {
+    const user = await tokenService.getUserBalanceByAdmin(userId);
+    res.status(200).json({
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      balance: user.tokens,
+    });
+  } catch (error: any) {
+    if (error instanceof CustomError) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    console.error("Error en adminGetUserBalance controller:", error);
+    res
+      .status(500)
+      .json({ message: "Error al obtener el balance del usuario." });
   }
 };

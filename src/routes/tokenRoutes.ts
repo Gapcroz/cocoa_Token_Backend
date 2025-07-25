@@ -15,6 +15,9 @@ import {
   getPendingTransferRequestsSent,
   getPendingTransferRequestsReceived,
   getUserCancellationRequests,
+  adminGetTransactionById,
+  adminGetUserTransactions,
+  adminGetUserBalance,
 } from "../controllers/tokenController";
 import { isAuthenticated, isAdmin } from "../middleware/auth.middleware"; // Ensure isAdmin is imported
 
@@ -37,7 +40,11 @@ router.post("/transfer/:transactionId/reject", isAuthenticated, rejectTransfer);
 router.get("/transactions", isAuthenticated, getUserTokenTransactions);
 
 // Route for a user to create a cancellation request for a completed transaction
-router.post("/transactions/cancel-request", isAuthenticated, createCancellationRequest);
+router.post(
+  "/transactions/cancel-request",
+  isAuthenticated,
+  createCancellationRequest
+);
 
 // --- ADMIN-FACING ROUTES ---
 // Apply isAdmin middleware to all admin routes to ensure only authorized users can access them.
@@ -51,7 +58,7 @@ router.put(
   "/admin/transactions/:transactionId/status",
   isAuthenticated,
   isAdmin,
-  adminUpdateTransactionStatus,
+  adminUpdateTransactionStatus
 );
 
 // Route for an admin to explicitly cancel a completed transfer (revert funds with cooldown)
@@ -60,28 +67,77 @@ router.post(
   "/admin/transactions/:transactionId/cancel",
   isAuthenticated,
   isAdmin,
-  cancelTransfer,
+  cancelTransfer
 );
 
 // Route for an admin to get all token transactions in the system
-router.get("/admin/transactions", isAuthenticated, isAdmin, adminGetAllTransactions);
+router.get(
+  "/admin/transactions",
+  isAuthenticated,
+  isAdmin,
+  adminGetAllTransactions
+);
 
 // Route for an admin to get all pending user cancellation requests
-router.get("/admin/cancellation-requests/pending", isAuthenticated, isAdmin, adminGetPendingCancellationRequests);
+router.get(
+  "/admin/cancellation-requests/pending",
+  isAuthenticated,
+  isAdmin,
+  adminGetPendingCancellationRequests
+);
 
 // Route for an admin to review (approve or reject) a specific cancellation request
 // requestId comes from the URL param
-router.post("/admin/cancellation-requests/:requestId/review", isAuthenticated, isAdmin, adminReviewCancellationRequest);
+router.post(
+  "/admin/cancellation-requests/:requestId/review",
+  isAuthenticated,
+  isAdmin,
+  adminReviewCancellationRequest
+);
 
 // Route to get pending transfer requests sent by the user
-router.get("/transfers/pending/sent", isAuthenticated, getPendingTransferRequestsSent);
+router.get(
+  "/transfers/pending/sent",
+  isAuthenticated,
+  getPendingTransferRequestsSent
+);
 
 // Route to get pending transfer requests received by the user
-router.get("/transfers/pending/received", isAuthenticated, getPendingTransferRequestsReceived);
+router.get(
+  "/transfers/pending/received",
+  isAuthenticated,
+  getPendingTransferRequestsReceived
+);
 
 // Route for a user to view their cancellation requests
-router.get("/transactions/cancellation-requests", isAuthenticated, getUserCancellationRequests);
+router.get(
+  "/transactions/cancellation-requests",
+  isAuthenticated,
+  getUserCancellationRequests
+);
 
+// Route for an admin to get details of a specific transaction by its ID
+router.get(
+  "/admin/transactions/:transactionId",
+  isAuthenticated,
+  isAdmin,
+  adminGetTransactionById
+);
 
+// Route for an admin to get all transactions of a specific user
+router.get(
+  "/admin/users/:userId/transactions",
+  isAuthenticated,
+  isAdmin,
+  adminGetUserTransactions
+);
+
+// Route for an admin to get the current token balance of a specific user
+router.get(
+  "/admin/users/:userId/balance",
+  isAuthenticated,
+  isAdmin,
+  adminGetUserBalance
+);
 
 export default router;

@@ -893,13 +893,20 @@ class TokenService {
   public async getPendingTransferRequestsReceived(
     userId: string
   ): Promise<ITokenTransaction[]> {
-    return await TokenTransaction.find({
+    const user = await User.findById(userId);
+    console.log("Buscando transferencias enviadas pendientes por aceptar...");
+    console.log("Usuario receptor:", user?.name);
+    const results = await TokenTransaction.find({
       receiverId: userId,
       status: "pending_acceptance",
       transactionType: "transfer_request",
     })
       .populate("senderId", "name email")
       .sort({ createdAt: -1 });
+    console.log(
+      `Se encontraron ${results.length} transferencias pendientes enviadas.`
+    );
+    return results;
   }
 
   /**
@@ -909,11 +916,83 @@ class TokenService {
   public async getUserCancellationRequests(
     userId: string
   ): Promise<ICancellationRequest[]> {
-    return await CancellationRequest.find({
+    const user = await User.findById(userId).select("name email");
+    console.log(
+      "Buscando solicitudes de cancelación del usuario:",
+      user?.name || user?.email
+    );
+    const results = await CancellationRequest.find({
       requestedBy: userId,
     })
       .populate("transactionId")
       .sort({ createdAt: -1 });
+    console.log(
+      `Se encontraron ${results.length} solicitudes de cancelación del usuario.`
+    );
+    return results;
+  }
+
+  /**
+   * Admin: Get detailed info of a specific transaction by ID.
+   */
+  public async getTransactionById(
+    transactionId: string
+  ): Promise<ITokenTransaction> {
+    console.log("Buscando detalles de transacción con ID:", transactionId);
+    const transaction = await TokenTransaction.findById(transactionId)
+      .populate("senderId", "name email")
+      .populate("receiverId", "name email");
+
+    if (!transaction) {
+      throw new NotFoundError("Transacción no encontrada.");
+    }
+    console.log(
+      "Transacción encontrada entre:",
+      transaction.senderId,
+      "→",
+      transaction.receiverId
+    );
+    return transaction;
+  }
+
+  /**
+   * Admin: Get all transactions involving a specific user.
+   */
+  public async getUserTransactionsByAdmin(
+    userId: string
+  ): Promise<ITokenTransaction[]> {
+    const user = await User.findById(userId).select("name email");
+    console.log(
+      "Buscando transacciones del usuario:",
+      user?.name || user?.email
+    );
+
+    const transactions = await TokenTransaction.find({
+      $or: [{ senderId: userId }, { receiverId: userId }],
+    })
+      .populate("senderId", "name email")
+      .populate("receiverId", "name email")
+      .sort({ createdAt: -1 });
+
+    console.log(
+      `Se encontraron ${transactions.length} transacciones asociadas al usuario.`
+    );
+    return transactions;
+  }
+
+  /**
+   * Admin: Get the current token balance of a specific user.
+   */
+  public async getUserBalanceByAdmin(userId: string): Promise<IUser> {
+    const user = await User.findById(userId).select("tokens name email");
+
+    if (!user) {
+      throw new NotFoundError("Usuario no encontrado.");
+    }
+    console.log(
+      `Saldo actual de ${user.name || user.email}: ${user.tokens} tokens`
+    );
+    return user;
   }
 }
 
