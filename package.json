@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node src/app.ts",
+    "dev": "nodemon src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js"
   },
@@ -28,7 +28,9 @@
     "@types/mongodb": "^4.0.6",
     "@types/node": "^24.0.7",
     "@types/winston": "^2.4.4",
+    "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
