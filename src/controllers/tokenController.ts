@@ -219,22 +219,9 @@ export const getUserTokenTransactions = async (req: Request, res: Response) => {
   }
 
   try {
-    console.log(`🔍 Backend: Buscando transacciones para usuario: ${userId}`);
     const transactions = await tokenService.getUserTransactions(
       userId.toString()
     );
-    console.log(`📊 Backend: ${transactions.length} transacciones encontradas`);
-    
-    // Log detallado de las transacciones para debugging
-    if (transactions.length > 0) {
-      console.log('📋 Backend: Detalles de transacciones:');
-      transactions.forEach((tx, index) => {
-        console.log(`  ${index + 1}. ID: ${tx._id}, Amount: ${tx.amount}, Status: ${tx.status}, Sender: ${tx.senderId}, Receiver: ${tx.receiverId}`);
-      });
-    } else {
-      console.log('⚠️ Backend: No se encontraron transacciones para este usuario');
-    }
-    
     res.status(200).json(transactions);
   } catch (error: any) {
     // This endpoint typically just fetches, so less custom error handling needed
