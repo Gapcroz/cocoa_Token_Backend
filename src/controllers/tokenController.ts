@@ -249,40 +249,7 @@ export const getUserTokenTransactions = async (req: Request, res: Response) => {
   }
 };
 
-// Endpoint temporal para crear una transacción de prueba
-export const createTestTransaction = async (req: Request, res: Response) => {
-  const userId = (req as any).user?._id;
 
-  if (!userId) {
-    res.status(401).json({ message: "No autenticado." });
-    return;
-  }
-
-  try {
-    console.log(`🧪 Backend: Creando transacción de prueba para usuario: ${userId}`);
-    
-    // Crear una transacción de prueba
-    const testTransaction = new TokenTransaction({
-      senderId: userId,
-      receiverId: userId, // Mismo usuario para la prueba
-      amount: 100,
-      status: "completed",
-      description: "Transacción de prueba",
-      transactionType: "test",
-    });
-
-    await testTransaction.save();
-    console.log(`✅ Backend: Transacción de prueba creada con ID: ${testTransaction._id}`);
-    
-    res.status(200).json({ 
-      message: "Transacción de prueba creada exitosamente",
-      transactionId: testTransaction._id 
-    });
-  } catch (error: any) {
-    console.error("Error en createTestTransaction controller:", error);
-    res.status(500).json({ message: "Error al crear transacción de prueba." });
-  }
-};
 
 /**
  * Endpoint to obtain all transfer requests sent by the user and pending acceptance
