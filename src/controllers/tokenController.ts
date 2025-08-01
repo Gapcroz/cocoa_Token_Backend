@@ -14,20 +14,23 @@ export const requestTransfer = async (req: Request, res: Response) => {
   const { receiverIdentifier, amount, requestId } = req.body; // Receive requestId for idempotency
 
   if (!senderId || !receiverIdentifier || typeof amount !== "number") {
-    return res.status(400).json({
+    res.status(400).json({
       message: "Faltan datos requeridos: receiverIdentifier, amount.",
     });
+    return;
   }
 
   // Basic validation on requestId format if desired (e.g., UUID format)
   if (requestId && (typeof requestId !== "string" || requestId.length === 0)) {
-    return res.status(400).json({ message: "Formato de requestId inválido." });
+    res.status(400).json({ message: "Formato de requestId inválido." });
+    return;
   }
 
   if (amount <= 0) {
-    return res
+    res
       .status(400)
       .json({ message: "El monto a transferir debe ser positivo." });
+    return;
   }
 
   try {
@@ -53,7 +56,8 @@ export const requestTransfer = async (req: Request, res: Response) => {
   } catch (error: any) {
     // Handle custom errors for specific HTTP responses
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en requestTransfer controller:", error);
     res.status(500).json({ message: "Error al solicitar la transferencia." });
@@ -68,9 +72,10 @@ export const acceptTransfer = async (req: Request, res: Response) => {
   const { transactionId } = req.params; // Get transaction ID from URL parameter
 
   if (!receiverId || !transactionId) {
-    return res
+    res
       .status(400)
       .json({ message: "Faltan datos requeridos: transactionId." });
+    return;
   }
 
   try {
@@ -90,7 +95,8 @@ export const acceptTransfer = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en acceptTransfer controller:", error);
     res
@@ -108,9 +114,10 @@ export const rejectTransfer = async (req: Request, res: Response) => {
   const { reason } = req.body; // Optional reason for rejection
 
   if (!receiverId || !transactionId) {
-    return res
+    res
       .status(400)
       .json({ message: "Faltan datos requeridos: transactionId." });
+    return;
   }
 
   try {
@@ -132,7 +139,8 @@ export const rejectTransfer = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en rejectTransfer controller:", error);
     res
@@ -152,14 +160,16 @@ export const cancelTransfer = async (req: Request, res: Response) => {
   const { reason } = req.body; // Required reason for cancellation
 
   if (!adminId) {
-    return res
+    res
       .status(401)
       .json({ message: "No autenticado como administrador." });
+    return;
   }
   if (!transactionId || !reason) {
-    return res
+    res
       .status(400)
       .json({ message: "Faltan datos requeridos: transactionId, reason." });
+    return;
   }
 
   try {
@@ -189,7 +199,8 @@ export const cancelTransfer = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en cancelTransfer controller:", error);
     res.status(500).json({ message: "Error al cancelar la transferencia." });
@@ -203,23 +214,73 @@ export const getUserTokenTransactions = async (req: Request, res: Response) => {
   const userId = (req as any).user?._id;
 
   if (!userId) {
-    return res.status(401).json({ message: "No autenticado." });
+    res.status(401).json({ message: "No autenticado." });
+    return;
   }
 
   try {
+    console.log(`🔍 Backend: Buscando transacciones para usuario: ${userId}`);
     const transactions = await tokenService.getUserTransactions(
       userId.toString()
     );
+    console.log(`📊 Backend: ${transactions.length} transacciones encontradas`);
+    
+    // Log detallado de las transacciones para debugging
+    if (transactions.length > 0) {
+      console.log('📋 Backend: Detalles de transacciones:');
+      transactions.forEach((tx, index) => {
+        console.log(`  ${index + 1}. ID: ${tx._id}, Amount: ${tx.amount}, Status: ${tx.status}, Sender: ${tx.senderId}, Receiver: ${tx.receiverId}`);
+      });
+    } else {
+      console.log('⚠️ Backend: No se encontraron transacciones para este usuario');
+    }
+    
     res.status(200).json(transactions);
   } catch (error: any) {
     // This endpoint typically just fetches, so less custom error handling needed
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en getUserTokenTransactions controller:", error);
     res
       .status(500)
       .json({ message: "Error al obtener el historial de transacciones." });
+  }
+};
+
+// Endpoint temporal para crear una transacción de prueba
+export const createTestTransaction = async (req: Request, res: Response) => {
+  const userId = (req as any).user?._id;
+
+  if (!userId) {
+    res.status(401).json({ message: "No autenticado." });
+    return;
+  }
+
+  try {
+    console.log(`🧪 Backend: Creando transacción de prueba para usuario: ${userId}`);
+    
+    // Crear una transacción de prueba
+    const testTransaction = new TokenTransaction({
+      senderId: userId,
+      receiverId: userId, // Mismo usuario para la prueba
+      amount: 100,
+      status: "completed",
+      description: "Transacción de prueba",
+      transactionType: "test",
+    });
+
+    await testTransaction.save();
+    console.log(`✅ Backend: Transacción de prueba creada con ID: ${testTransaction._id}`);
+    
+    res.status(200).json({ 
+      message: "Transacción de prueba creada exitosamente",
+      transactionId: testTransaction._id 
+    });
+  } catch (error: any) {
+    console.error("Error en createTestTransaction controller:", error);
+    res.status(500).json({ message: "Error al crear transacción de prueba." });
   }
 };
 
@@ -233,7 +294,8 @@ export const getPendingTransferRequestsSent = async (
   const userId = (req as any).user?._id;
 
   if (!userId) {
-    return res.status(401).json({ message: "No autenticado." });
+    res.status(401).json({ message: "No autenticado." });
+    return;
   }
 
   try {
@@ -257,7 +319,8 @@ export const getPendingTransferRequestsReceived = async (
   const userId = (req as any).user?._id;
 
   if (!userId) {
-    return res.status(401).json({ message: "No autenticado." });
+    res.status(401).json({ message: "No autenticado." });
+    return;
   }
 
   try {
@@ -285,7 +348,8 @@ export const getUserCancellationRequests = async (
   const userId = (req as any).user?._id;
 
   if (!userId) {
-    return res.status(401).json({ message: "No autenticado." });
+    res.status(401).json({ message: "No autenticado." });
+    return;
   }
 
   try {
@@ -312,9 +376,10 @@ export const createCancellationRequest = async (
   const { transactionId, reason } = req.body; // transactionId of the transaction to cancel, user's reason
 
   if (!userId || !transactionId || !reason) {
-    return res
+    res
       .status(400)
       .json({ message: "Faltan datos requeridos: transactionId, reason." });
+    return;
   }
 
   try {
@@ -331,7 +396,8 @@ export const createCancellationRequest = async (
     });
   } catch (error: any) {
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en createCancellationRequest controller:", error);
     res
@@ -351,14 +417,16 @@ export const adminAdjustUserTokens = async (req: Request, res: Response) => {
   const { userId, amount, description } = req.body;
 
   if (!adminId) {
-    return res
+    res
       .status(401)
       .json({ message: "No autenticado como administrador." });
+    return;
   }
   if (!userId || typeof amount !== "number") {
-    return res
+    res
       .status(400)
       .json({ message: "Faltan datos requeridos: userId, amount." });
+    return;
   }
 
   try {
@@ -375,7 +443,8 @@ export const adminAdjustUserTokens = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en adminAdjustUserTokens controller:", error);
     res.status(500).json({ message: "Error al ajustar tokens del usuario." });
@@ -396,14 +465,16 @@ export const adminUpdateTransactionStatus = async (
   const { status, reason } = req.body;
 
   if (!adminId) {
-    return res
+    res
       .status(401)
       .json({ message: "No autenticado como administrador." });
+    return;
   }
   if (!status || !transactionId) {
-    return res
+    res
       .status(400)
       .json({ message: "Faltan datos requeridos: transactionId, status." });
+    return;
   }
   // Validate status to be one of the enum values, including new ones
   const validStatuses = [
@@ -414,7 +485,8 @@ export const adminUpdateTransactionStatus = async (
     "rejected",
   ];
   if (!validStatuses.includes(status)) {
-    return res.status(400).json({ message: "Estado de transacción inválido." });
+    res.status(400).json({ message: "Estado de transacción inválido." });
+    return;
   }
 
   try {
@@ -430,7 +502,8 @@ export const adminUpdateTransactionStatus = async (
     });
   } catch (error: any) {
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en adminUpdateTransactionStatus controller:", error);
     res
@@ -449,9 +522,10 @@ export const adminGetPendingCancellationRequests = async (
   const adminId = (req as any).user?._id; // For admin check
 
   if (!adminId) {
-    return res
+    res
       .status(401)
       .json({ message: "No autenticado como administrador." });
+    return;
   }
 
   try {
@@ -480,20 +554,23 @@ export const adminReviewCancellationRequest = async (
   const { action, reviewReason } = req.body; // action: 'approve' or 'reject'
 
   if (!adminId) {
-    return res
+    res
       .status(401)
       .json({ message: "No autenticado como administrador." });
+    return;
   }
   if (!requestId || !action) {
-    return res
+    res
       .status(400)
       .json({ message: "Faltan datos requeridos: requestId, action." });
+    return;
   }
   if (!["approve", "reject"].includes(action)) {
     // Validate action type
-    return res
+    res
       .status(400)
       .json({ message: "Acción inválida. Debe ser 'approve' o 'reject'." });
+    return;
   }
 
   try {
@@ -511,7 +588,8 @@ export const adminReviewCancellationRequest = async (
     });
   } catch (error: any) {
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en adminReviewCancellationRequest controller:", error);
     res
@@ -525,9 +603,10 @@ export const adminGetAllTransactions = async (req: Request, res: Response) => {
   const adminId = (req as any).user?._id; // For admin check
 
   if (!adminId) {
-    return res
+    res
       .status(401)
       .json({ message: "No autenticado como administrador." });
+    return;
   }
 
   try {
@@ -552,13 +631,15 @@ export const adminGetTransactionById = async (req: Request, res: Response) => {
   const { transactionId } = req.params;
 
   if (!adminId) {
-    return res
+    res
       .status(401)
       .json({ message: "No autenticado como administrador." });
+    return;
   }
 
   if (!transactionId) {
-    return res.status(400).json({ message: "Falta el ID de la transacción." });
+    res.status(400).json({ message: "Falta el ID de la transacción." });
+    return;
   }
 
   try {
@@ -566,7 +647,8 @@ export const adminGetTransactionById = async (req: Request, res: Response) => {
     res.status(200).json(transaction);
   } catch (error: any) {
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en adminGetTransactionById controller:", error);
     res.status(500).json({ message: "Error al obtener la transacción." });
@@ -581,13 +663,15 @@ export const adminGetUserTransactions = async (req: Request, res: Response) => {
   const { userId } = req.params;
 
   if (!adminId) {
-    return res
+    res
       .status(401)
       .json({ message: "No autenticado como administrador." });
+    return;
   }
 
   if (!userId) {
-    return res.status(400).json({ message: "Falta el ID del usuario." });
+    res.status(400).json({ message: "Falta el ID del usuario." });
+    return;
   }
 
   try {
@@ -595,7 +679,8 @@ export const adminGetUserTransactions = async (req: Request, res: Response) => {
     res.status(200).json(transactions);
   } catch (error: any) {
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en adminGetUserTransactions controller:", error);
     res
@@ -612,13 +697,15 @@ export const adminGetUserBalance = async (req: Request, res: Response) => {
   const { userId } = req.params;
 
   if (!adminId) {
-    return res
+    res
       .status(401)
       .json({ message: "No autenticado como administrador." });
+    return;
   }
 
   if (!userId) {
-    return res.status(400).json({ message: "Falta el ID del usuario." });
+    res.status(400).json({ message: "Falta el ID del usuario." });
+    return;
   }
 
   try {
@@ -631,7 +718,8 @@ export const adminGetUserBalance = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     if (error instanceof CustomError) {
-      return res.status(error.statusCode).json({ message: error.message });
+      res.status(error.statusCode).json({ message: error.message });
+      return;
     }
     console.error("Error en adminGetUserBalance controller:", error);
     res

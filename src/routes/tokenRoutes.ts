@@ -18,6 +18,7 @@ import {
   adminGetTransactionById,
   adminGetUserTransactions,
   adminGetUserBalance,
+  createTestTransaction, // Endpoint temporal para pruebas
 } from "../controllers/tokenController";
 import { isAuthenticated, isAdmin } from "../middleware/auth.middleware"; // Ensure isAdmin is imported
 
@@ -38,6 +39,9 @@ router.post("/transfer/:transactionId/reject", isAuthenticated, rejectTransfer);
 
 // Route to get a user's token transaction history (sent, received, etc.)
 router.get("/transactions", isAuthenticated, getUserTokenTransactions);
+
+// Route temporal para crear transacción de prueba
+router.post("/test-transaction", isAuthenticated, createTestTransaction);
 
 // Route for a user to create a cancellation request for a completed transaction
 router.post(
