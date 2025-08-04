@@ -1,4 +1,3 @@
-// src/routes/authRoutes.ts
 import express, { Router } from "express";
 import {
   login,
@@ -8,6 +7,7 @@ import {
   getMe,
   updateProfile,
   checkAdminExists,
+  changePassword, // ✅ Nueva importación
 } from "../controllers/authController";
 import { isAuthenticated } from "../middleware/auth.middleware";
 
@@ -20,5 +20,6 @@ router.post("/complete-google-user", completeGoogleUser);
 router.get("/me", isAuthenticated, getMe);
 router.put("/update-profile", isAuthenticated, updateProfile);
 router.get("/check-admin", checkAdminExists);
+router.post("/change-password", isAuthenticated, changePassword); // ✅ nueva ruta
 
 export default router;

@@ -435,3 +435,43 @@ export const updateProfile = async (
     res.status(500).json({ message: "Error del servidor" });
   }
 };
+
+export const changePassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user._id;
+    const { currentPassword, newPassword } = req.body;
+
+    logger.info("ChangePassword: Petición recibida para cambiar contraseña del usuario:", userId);
+
+    if (!currentPassword || !newPassword) {
+      logger.warn("ChangePassword: Campos faltantes en la solicitud.");
+      res.status(400).json({ message: "Contraseña actual y nueva son requeridas." });
+      return;
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.password) {
+      logger.warn("ChangePassword: Usuario no encontrado o sin contraseña definida:", userId);
+      res.status(404).json({ message: "Usuario no encontrado o no tiene contraseña establecida." });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      logger.warn("ChangePassword: Contraseña actual incorrecta para el usuario:", user.email);
+      res.status(401).json({ message: "La contraseña actual es incorrecta." });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    await user.save();
+    logger.info("ChangePassword: Contraseña actualizada correctamente para el usuario:", user.email);
+
+    res.json({ message: "Contraseña actualizada exitosamente." });
+  } catch (error) {
+    logger.error("ChangePassword: Error al cambiar la contraseña:", error);
+    res.status(500).json({ message: "Error del servidor al cambiar la contraseña." });
+  }
+};
