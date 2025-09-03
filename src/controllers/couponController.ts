@@ -1,23 +1,14 @@
 import { Request, Response } from "express";
 import Coupon from "../models/coupon";
-import User from "../models/user";
 
 export const createCoupon = async (req: Request, res: Response) => {
   try {
     const { name, description, socialEvent, tokensRequired, expirationDate } =
       req.body;
-    const storeId = (req as any).user?.get("id");
+    const storeId = (req as any).user?._id;
 
     if (!name || !description || !tokensRequired || !expirationDate) {
       res.status(400).json({ message: "Faltan campos requeridos" });
-      return;
-    }
-
-    const store = await User.findOne({ where: { id: storeId, isStore: true } });
-    if (!store) {
-      res
-        .status(403)
-        .json({ message: "Solo las tiendas pueden crear cupones" });
       return;
     }
 
@@ -39,27 +30,15 @@ export const createCoupon = async (req: Request, res: Response) => {
 
 export const getCouponsByStore = async (req: Request, res: Response) => {
   try {
-    const storeId = (req as any).user?.get("id");
-
-    if (!storeId) {
-      res.status(401).json({ message: "No autorizado" });
-      return;
-    }
-
-    const store = await User.findOne({ _id: storeId, isStore: true });
-
-    if (!store) {
-      res
-        .status(403)
-        .json({ message: "Solo las tiendas pueden ver sus cupones" });
-      return;
-    }
+    const storeId = (req as any).user?._id;
+    console.log('🔎 Buscando cupones para storeId:', storeId);
 
     const coupons = await Coupon.find({ storeId }).populate({
       path: "storeId",
       select: "name email",
     });
 
+    console.log('📝 Cupones encontrados:', coupons.map(c => ({ id: c._id, name: c.name, tokensRequired: c.tokensRequired, expirationDate: c.expirationDate })));
     res.json(coupons);
   } catch (error) {
     console.error("Error al obtener cupones:", error);
@@ -70,10 +49,11 @@ export const getCouponsByStore = async (req: Request, res: Response) => {
 export const updateCoupon = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const storeId = (req as any).user?.get("id");
+    const storeId = (req as any).user?._id;
 
     const coupon = await Coupon.findOne({
-      where: { id, storeId },
+      _id: id,
+      storeId: storeId,
     });
 
     if (!coupon) {
@@ -81,7 +61,17 @@ export const updateCoupon = async (req: Request, res: Response) => {
       return;
     }
 
-    Object.assign(coupon, req.body);
+    // Solo actualizar campos permitidos, nunca storeId
+    const { name, description, socialEvent, tokensRequired, expirationDate, status } = req.body;
+    if (name !== undefined) coupon.name = name;
+    if (description !== undefined) coupon.description = description;
+    if (socialEvent !== undefined) coupon.socialEvent = socialEvent;
+    if (tokensRequired !== undefined) coupon.tokensRequired = tokensRequired;
+    if (expirationDate !== undefined) coupon.expirationDate = expirationDate;
+    if (status !== undefined) coupon.status = status;
+    // Refuerzo: si el documento perdió storeId, lo reasignamos automáticamente
+    if (!coupon.storeId) coupon.storeId = storeId;
+
     await coupon.save();
 
     res.json({ message: "Cupón actualizado correctamente", coupon });
@@ -94,10 +84,11 @@ export const updateCoupon = async (req: Request, res: Response) => {
 export const deleteCoupon = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const storeId = (req as any).user?.get("id");
+    const storeId = (req as any).user?._id;
 
     const coupon = await Coupon.findOne({
-      where: { id, storeId },
+      _id: id,
+      storeId: storeId,
     });
 
     if (!coupon) {
@@ -105,7 +96,7 @@ export const deleteCoupon = async (req: Request, res: Response) => {
       return;
     }
 
-    await coupon.deleteOne();
+    await Coupon.deleteOne({ _id: id });
     res.json({ message: "Cupón eliminado correctamente" });
   } catch (error) {
     console.error("Error al eliminar cupón:", error);

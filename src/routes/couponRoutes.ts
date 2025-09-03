@@ -1,17 +1,19 @@
 import { Router } from 'express';
 import { createCoupon, getCouponsByStore, updateCoupon, deleteCoupon, getUserCoupons } from '../controllers/couponController';
-import { isAuthenticated } from '../middleware/auth.middleware';
+import { isAuthenticated, isStore, isRegularUser } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // All routes require authentication
 router.use(isAuthenticated);
 
-// Coupon routes
-router.post('/', createCoupon);
-router.get('/store', getCouponsByStore);
-router.get('/user', getUserCoupons);
-router.put('/:id', updateCoupon);
-router.delete('/:id', deleteCoupon);
+// Store-only routes (create, update, delete, get store coupons)
+router.post('/', isStore, createCoupon);
+router.get('/store', isStore, getCouponsByStore);
+router.put('/:id', isStore, updateCoupon);
+router.delete('/:id', isStore, deleteCoupon);
+
+// Regular user routes (get available coupons)
+router.get('/user', isRegularUser, getUserCoupons);
 
 export default router; 

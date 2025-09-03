@@ -1,12 +1,25 @@
-// src/routes/authRoutes.ts
-import express from "express";
-import { login, register, googleLogin, completeGoogleUser } from "../controllers/authController";
+import express, { Router } from "express";
+import {
+  login,
+  register,
+  googleLogin,
+  completeGoogleUser,
+  getMe,
+  updateProfile,
+  checkAdminExists,
+  changePassword, // ✅ Nueva importación
+} from "../controllers/authController";
+import { isAuthenticated } from "../middleware/auth.middleware";
 
-const router = express.Router();
+const router = Router();
 
 router.post("/register", register);
 router.post("/login", login);
 router.post("/google-login", googleLogin);
 router.post("/complete-google-user", completeGoogleUser);
+router.get("/me", isAuthenticated, getMe);
+router.put("/update-profile", isAuthenticated, updateProfile);
+router.get("/check-admin", checkAdminExists);
+router.post("/change-password", isAuthenticated, changePassword); // ✅ nueva ruta
 
 export default router;
