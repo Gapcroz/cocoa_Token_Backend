@@ -2,13 +2,14 @@ import { Request, Response } from 'express';
 import { Event, IEvent } from '../models/event';
 // import EventTask, { IEventTask } from '../models/eventTask';
 import { EventService } from '../services/eventService';
+import { CloudinaryService } from '../services/cloudinaryService';
 
 export class EventController {
   // Crear un nuevo evento
   static async createEvent(req: Request, res: Response): Promise<void> {
     try {
       console.log('EventController: Creando evento:', req.body);
-      
+
       const { title, description, location, date, time, createdBy, imageUrl, minTokens, maxTokens, categoryId, tasks } = req.body;
 
       // Validaciones
@@ -96,6 +97,26 @@ export class EventController {
         }
       }
 
+      // Procesar imagen
+      let finalImageUrl = imageUrl;
+
+      // Si hay un archivo de imagen, subirlo a Cloudinary
+      if (req.file) {
+        try {
+          finalImageUrl = await CloudinaryService.uploadImage(req.file);
+        } catch (error) {
+          console.error(
+            'EventController: Error al subir imagen a Cloudinary:',
+            error
+          );
+          res.status(500).json({
+            success: false,
+            message: 'Error al procesar la imagen',
+          });
+          return;
+        }
+      }
+
       // Crear el evento
       const newEvent = new Event({
         title,
@@ -104,7 +125,7 @@ export class EventController {
         date: eventDate,
         time,
         createdBy,
-        imageUrl,
+        imageUrl: finalImageUrl,
         minTokens,
         maxTokens,
         categoryId,
@@ -153,7 +174,7 @@ export class EventController {
   static async getAllEvents(req: Request, res: Response): Promise<void> {
     try {
       console.log('EventController: Obteniendo todos los eventos');
-      
+
       const events = await Event.find({ isActive: true })
         .sort({ date: 1, createdAt: -1 })
         .lean();
@@ -163,7 +184,7 @@ export class EventController {
       res.status(200).json({
         success: true,
         message: 'Eventos obtenidos exitosamente',
-        events: events.map(event => ({
+        events: events.map((event) => ({
           id: event._id,
           title: event.title,
           description: event.description,
@@ -237,8 +258,6 @@ export class EventController {
     try {
       const { id } = req.params;
       const { title, description, location, date, time, imageUrl, minTokens, maxTokens, categoryId } = req.body;
-      
-      console.log('EventController: Actualizando evento:', id);
 
       // Validaciones
       if (!title || !description || !location || !date || !time || minTokens === undefined || maxTokens === undefined || !categoryId) {
@@ -286,6 +305,35 @@ export class EventController {
         return;
       }
 
+      // Procesar imagen
+      let finalImageUrl = imageUrl;
+
+      if (req.file) {
+        try {
+          // Obtener la imagen anterior del evento para eliminarla
+          const existingEvent = await Event.findById(id)
+            .select('imageUrl')
+            .lean();
+          const oldImageUrl = existingEvent?.imageUrl;
+
+          // Usar updateImage que elimina la anterior y sube la nueva
+          finalImageUrl = await CloudinaryService.updateImage(
+            req.file,
+            oldImageUrl
+          );
+        } catch (error) {
+          console.error(
+            'EventController: Error al actualizar imagen en Cloudinary:',
+            error
+          );
+          res.status(500).json({
+            success: false,
+            message: 'Error al procesar la nueva imagen',
+          });
+          return;
+        }
+      }
+
       const updatedEvent = await Event.findByIdAndUpdate(
         id,
         {
@@ -294,7 +342,7 @@ export class EventController {
           location,
           date: eventDate,
           time,
-          imageUrl,
+          imageUrl: finalImageUrl,
           minTokens,
           maxTokens,
           categoryId,
@@ -309,8 +357,6 @@ export class EventController {
         });
         return;
       }
-
-      console.log('EventController: Evento actualizado exitosamente');
 
       res.status(200).json({
         success: true,
@@ -393,7 +439,7 @@ export class EventController {
       res.status(200).json({
         success: true,
         message: 'Eventos obtenidos exitosamente',
-        events: events.map(event => ({
+        events: events.map((event) => ({
           id: event._id,
           title: event.title,
           description: event.description,
@@ -449,51 +495,56 @@ export class EventController {
             from: 'eventparticipations',
             localField: '_id',
             foreignField: 'eventId',
-            as: 'participations'
-          }
+            as: 'participations',
+          },
         },
         {
           $lookup: {
             from: 'eventtasks',
             localField: '_id',
             foreignField: 'eventId',
-            as: 'tasks'
-          }
+            as: 'tasks',
+          },
         },
         {
           $lookup: {
             from: 'usertaskcompletions',
             localField: '_id',
             foreignField: 'eventId',
-            as: 'userCompletions'
-          }
+            as: 'userCompletions',
+          },
         },
         {
           $match: {
             isActive: true,
-            'participations': {
+            participations: {
               $elemMatch: {
                 userId: userId,
-                isActive: true
-              }
-            }
-          }
+                isActive: true,
+              },
+            },
+          },
         },
         {
-          $sort: { date: 1, createdAt: -1 }
-        }
+          $sort: { date: 1, createdAt: -1 },
+        },
       ]);
 
-      console.log('EventController: Eventos activos del usuario encontrados:', userActiveEvents.length);
+      console.log(
+        'EventController: Eventos activos del usuario encontrados:',
+        userActiveEvents.length
+      );
 
       res.status(200).json({
         success: true,
         message: 'Eventos activos del usuario obtenidos exitosamente',
-        events: userActiveEvents.map(event => {
+        events: userActiveEvents.map((event) => {
           // Filtrar tareas completadas por este usuario
-          const userTaskCompletions = event.userCompletions?.filter(
-            (completion: any) => completion.userId === userId && completion.isCompleted
-          ) || [];
+          const userTaskCompletions =
+            event.userCompletions?.filter(
+              (completion: any) =>
+                completion.userId === userId && completion.isCompleted
+            ) || [];
 
           return {
             id: event._id,
@@ -511,7 +562,11 @@ export class EventController {
             categoryId: event.categoryId,
             totalTasks: event.tasks?.length || 0,
             completedTasks: userTaskCompletions.length,
-            completedTokens: userTaskCompletions.reduce((sum: number, completion: any) => sum + (completion.tokensAwarded || 0), 0),
+            completedTokens: userTaskCompletions.reduce(
+              (sum: number, completion: any) =>
+                sum + (completion.tokensAwarded || 0),
+              0
+            ),
           };
         }),
       });
@@ -523,4 +578,4 @@ export class EventController {
       });
     }
   }
-} 
+}
