@@ -3,16 +3,18 @@ import { EventRepository } from '../repositories/eventRepository';
 export class EventService {
   static async getEventsWithTasks() {
     const allActiveEvents = await EventRepository.findActiveEvents();
-    // Si quieres filtrar solo los que tienen tareas, descomenta lo siguiente:
-    // const eventsWithTaskCount = await Promise.all(
-    //   allActiveEvents.map(async (event) => {
-    //     const taskCount = await EventRepository.countTasksForEvent(event._id.toString());
-    //     return { ...event, taskCount };
-    //   })
-    // );
-    // return eventsWithTaskCount.filter(event => event.taskCount > 0);
-    // Por ahora, regresa todos los eventos activos con taskCount: 0
-    return allActiveEvents.map((event: any) => ({
+    
+    // Obtener el conteo de tareas para cada evento
+    const eventsWithTaskCount = await Promise.all(
+      allActiveEvents.map(async (event) => {
+        const taskCount = await EventRepository.countTasksForEvent(event._id.toString());
+        return { ...event, taskCount };
+      })
+    );
+    
+    // Devolver TODOS los eventos activos con su conteo de tareas
+    return eventsWithTaskCount.map((event: any) => ({
+      eventId: event._id,
       id: event._id,
       title: event.title,
       description: event.description,
@@ -26,7 +28,7 @@ export class EventService {
       minTokens: event.minTokens,
       maxTokens: event.maxTokens,
       categoryId: event.categoryId,
-      taskCount: 0,
+      taskCount: event.taskCount,
     }));
   }
 } 
