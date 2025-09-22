@@ -12,6 +12,7 @@ import tokenRoutes from "./routes/tokenRoutes";import eventRoutes from "./routes
 import eventParticipationRoutes from "./routes/eventParticipationRoutes";
 // import eventTaskRoutes from "./routes/eventTaskRoutes";
 import taskRoutes from "./routes/taskRoutes";
+import syncRoutes from "./routes/syncRoutes";
 
 const app: Express = express();
 
@@ -50,6 +51,7 @@ app.use("/api", eventRoutes);
 app.use("/api", eventParticipationRoutes);
 // app.use("/api", eventTaskRoutes);
 app.use("/api", taskRoutes);
+app.use("/api", syncRoutes);
 
 // Conexión y arranque
 const PORT = parseInt(process.env.PORT || "3000", 10);
