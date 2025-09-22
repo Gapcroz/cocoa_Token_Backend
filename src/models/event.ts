@@ -13,6 +13,10 @@ export interface IEvent extends Document {
   minTokens: number;
   maxTokens: number;
   categoryId: string;
+  // Campos para sincronización con WordPress
+  wordpressId?: string;
+  source?: 'manual' | 'wordpress';
+  isReadOnly?: boolean;
 }
 
 const eventSchema = new Schema<IEvent>({
@@ -74,6 +78,22 @@ const eventSchema = new Schema<IEvent>({
     required: [true, 'La categoría es requerida'],
     trim: true,
   },
+  // Campos para sincronización con WordPress
+  wordpressId: {
+    type: String,
+    required: false,
+    unique: true,
+    sparse: true,
+  },
+  source: {
+    type: String,
+    enum: ['manual', 'wordpress'],
+    default: 'manual',
+  },
+  isReadOnly: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });
@@ -83,5 +103,7 @@ eventSchema.index({ date: 1 });
 eventSchema.index({ categoryId: 1 });
 eventSchema.index({ createdBy: 1 });
 eventSchema.index({ isActive: 1 });
+eventSchema.index({ wordpressId: 1 });
+eventSchema.index({ source: 1 });
 
 export const Event = mongoose.model<IEvent>('Event', eventSchema); 

@@ -198,6 +198,9 @@ export class EventController {
           minTokens: event.minTokens,
           maxTokens: event.maxTokens,
           categoryId: event.categoryId,
+          wordpressId: event.wordpressId,
+          source: event.source,
+          isReadOnly: event.isReadOnly,
         })),
       });
     } catch (error) {
