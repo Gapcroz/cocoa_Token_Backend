@@ -127,3 +127,97 @@ export const useActivatedCoupon = async (req: Request, res: Response) => {
     return;
   }
 };
+
+// Escanear y canjear un cupón desde una tienda mediante QR
+export const scanCouponForStore = async (req: Request, res: Response) => {
+  try {
+    const storeUser = (req as any).user;
+    const { code } = req.body as { code?: string };
+
+    if (!storeUser || !storeUser.isStore) {
+      res.status(403).json({ message: "Solo las tiendas pueden realizar esta acción" });
+      return;
+    }
+
+    if (!code) {
+      res.status(400).json({ message: "Código inválido" });
+      return;
+    }
+
+    const normalizedCode = code.startsWith("COCOA:") ? code.split(":")[1] : code;
+
+    if (!normalizedCode) {
+      res.status(400).json({ message: "Código QR inválido" });
+      return;
+    }
+
+    const userCoupon = await UserCoupon.findById(normalizedCode)
+      .populate({ path: "couponId", model: "Coupon" })
+      .populate({ path: "userId", model: "User" });
+
+    if (!userCoupon) {
+      res.status(404).json({ message: "Cupón no encontrado" });
+      return;
+    }
+
+    const couponDoc = userCoupon.couponId as any;
+
+    if (!couponDoc) {
+      res.status(404).json({ message: "Cupón asociado no disponible" });
+      return;
+    }
+
+    const couponStoreId =
+      typeof couponDoc.storeId === "object" && couponDoc.storeId !== null
+        ? couponDoc.storeId.toString()
+        : couponDoc.storeId?.toString();
+
+    if (!couponStoreId || couponStoreId !== storeUser._id.toString()) {
+      res.status(403).json({ message: "Este cupón no pertenece a tu tienda" });
+      return;
+    }
+
+    const now = new Date();
+    if (couponDoc.expirationDate && new Date(couponDoc.expirationDate) < now) {
+      res.status(410).json({ message: "Este cupón ha expirado" });
+      return;
+    }
+
+    if (userCoupon.status === "used") {
+      res.status(409).json({ message: "Este cupón ya fue utilizado" });
+      return;
+    }
+
+    userCoupon.status = "used";
+    userCoupon.usedDate = new Date();
+    await userCoupon.save();
+
+    res.json({
+      message: "Cupón canjeado correctamente",
+      redemption: {
+        id: userCoupon._id,
+        status: userCoupon.status,
+        usedDate: userCoupon.usedDate,
+        coupon: {
+          id: couponDoc._id,
+          name: couponDoc.name,
+          description: couponDoc.description,
+          tokensRequired: couponDoc.tokensRequired,
+        },
+        user:
+          userCoupon.userId && typeof userCoupon.userId === "object"
+            ? {
+                id: (userCoupon.userId as any)._id,
+                name: (userCoupon.userId as any).name,
+                email: (userCoupon.userId as any).email,
+              }
+            : undefined,
+      },
+    });
+    return;
+  } catch (error) {
+    console.error("Error al canjear cupón escaneado:", error);
+    res.status(500).json({ message: "Error al procesar el cupón" });
+    return;
+  }
+};
